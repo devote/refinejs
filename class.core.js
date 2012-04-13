@@ -87,7 +87,7 @@
 				Fn.prototype = parentClass.prototype;
 				copy = new Fn();
 			} else {
-				copy.dynamic = {}
+				copy.shared = {}
 			}
 
 			if ( parentClass || isParent ) {
