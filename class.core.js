@@ -136,15 +136,15 @@
 
 							if ( propType === 1 || propType === 2 ) {
 								props.get = function() {
-									return (copy[propType === 1 ? "__get" : prop] || function(){})(
-										propType === 1 ? nm : undefined
+									return (copy[propType === 1 ? "__get" : prop] || function(){}).call(
+										this, propType === 1 ? nm : undefined
 									)
 								}
 							}
 
 							if ( propType === 1 || propType === 3 ) {
 								props.set = function( value ) {
-									(copy[propType === 1 ? "__set" : prop] || function(){})(
+									(copy[propType === 1 ? "__set" : prop] || function(){}).call( this,
 										propType === 1 ? nm : value, propType === 1 ? value : undefined
 									)
 								}
