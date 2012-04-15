@@ -150,7 +150,7 @@
 								}
 							}
 
-							if ( !Object.defineProperty ) {
+							if ( Object.defineProperty ) {
 
 								var descr = Object.getOwnPropertyDescriptor( copy, nm );
 
