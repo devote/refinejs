@@ -1,5 +1,5 @@
 /*
- * class.core.js Library for JavaScript v0.2.0
+ * class.core.js Library for JavaScript v0.2.1
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,15 +9,16 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 12-04-2012
+ * Update: 15-04-2012
  */
 
 (function( global, undefined ) {
 
 	"use strict";
 
-	var vbinc = 0,
-		msie = eval("/*@cc_on (@_jscript_version+'').replace(/\\d\\./, '');@*/"),
+	var msie = eval("/*@cc_on (@_jscript_version+'').replace(/\\d\\./, '');@*/"),
+		libID = ( new Date() ).getTime(),
+		VBInc = ( Object.defineProperty || Object.prototype.__defineGetter__ ) && ( !msie || msie > 8 ) ? 0 : 1,
 		hasOwnProperty = Object.prototype.hasOwnProperty,
 		hasDontEnumBug = !( { toString: null } ).propertyIsEnumerable( 'toString' ),
 		dontEnums = [
@@ -30,8 +31,9 @@
 			'constructor'
 		];
 
-	if ( msie && msie < 9 && !( "execVBscript" in window ) ) {
-		execScript('Function execVBscript(code) ExecuteGlobal(code) End Function', 'VBScript');
+	if ( VBInc && !( "execVBscript" in window ) ) {
+		execScript('Function execVBscript(code) ExecuteGlobal(code) End Function\n'+
+			'Function VBCorrectVal(o,r) If IsObject(o) Then Set r=o Else r=o End If End Function', 'VBScript');
 	}
 
 	function Class( context, rule, parentClass, struct ) {
@@ -84,7 +86,7 @@
 				obj.parent = parentClass.call( false, owner );
 
 				var Fn = function(){}
-				Fn.prototype = parentClass.prototype;
+				Fn.prototype = obj.parent;
 				copy = new Fn();
 			} else {
 				copy.shared = {}
@@ -114,60 +116,55 @@
 
 			if ( !isParent ) {
 
-				var cache = {};
-
-				if ( ( Object.defineProperty || copy.__defineGetter__ ) && ( !msie || msie > 8 ) ) {
+				if ( !VBInc ) {
 
 					Class.ownEach( copy, function( prop, val ) {
 
-						if ( !cache[ "_" + prop ] && ( cache[ "_" + prop ] = 1 ) ) {
+						var propType = prop.indexOf( "$" ) === 0 ? 1 :
+								prop.indexOf( "get " ) === 0 ? 2 :
+								prop.indexOf( "set " ) === 0 ? 3 : 0;
 
-							var propType = prop.indexOf( "$" ) === 0 ? 1 :
-									prop.indexOf( "get " ) === 0 ? 2 :
-									prop.indexOf( "set " ) === 0 ? 3 : 0;
+						if ( propType ) {
 
-							if ( propType ) {
+							var nm = propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop(),
+								props = {
+									enumerable: 1,
+									configurable: 1,
+									set: null,
+									get: null
+								};
 
-								var nm = propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop(),
-									props = {
-										enumerable: 1,
-										configurable: 1,
-										set: null,
-										get: null
-									};
+							if ( propType === 1 || propType === 2 ) {
+								props.get = function() {
+									return (copy[propType === 1 ? "__get" : prop] || function(){})(
+										propType === 1 ? nm : undefined
+									)
+								}
+							}
 
+							if ( propType === 1 || propType === 3 ) {
+								props.set = function( value ) {
+									(copy[propType === 1 ? "__set" : prop] || function(){})(
+										propType === 1 ? nm : value, propType === 1 ? value : undefined
+									)
+								}
+							}
+
+							if ( !Object.defineProperty ) {
+
+								var descr = Object.getOwnPropertyDescriptor( copy, nm );
+
+								props.get = props.get || descr && descr.get || function(){};
+								props.set = props.set || descr && descr.set || function(){};
+
+								Object.defineProperty( copy, nm, props );
+
+							} else {
 								if ( propType === 1 || propType === 2 ) {
-									props.get = function() {
-										return (copy[propType === 1 ? "__get" : prop] || function(){})(
-											propType === 1 ? nm : undefined
-										)
-									}
+									copy.__defineGetter__( nm, props.get );
 								}
-
 								if ( propType === 1 || propType === 3 ) {
-									props.set = function( value ) {
-										(copy[propType === 1 ? "__set" : prop] || function(){})(
-											propType === 1 ? nm : value, propType === 1 ? value : undefined
-										)
-									}
-								}
-
-								if ( Object.defineProperty ) {
-
-									var descr = Object.getOwnPropertyDescriptor( copy, nm );
-
-									props.get = props.get || descr && descr.get || function(){};
-									props.set = props.set || descr && descr.set || function(){};
-
-									Object.defineProperty( copy, nm, props );
-
-								} else {
-									if ( propType === 1 || propType === 2 ) {
-										copy.__defineGetter__( nm, props.set );
-									}
-									if ( propType === 1 || propType === 3 ) {
-										copy.__defineSetter__( nm, props.set );
-									}
+									copy.__defineSetter__( nm, props.set );
 								}
 							}
 						}
@@ -176,57 +173,59 @@
 
 				} else if ( msie ) {
 
-					var staticClass = "StaticClass" + vbinc++,
+					var staticClass = "StaticClass" + libID + VBInc++,
 						parts = [ "Class " + staticClass ],
 						props = [], names = [], propType, nm,
 						hasAccessors = false;
 
 					Class.ownEach( copy, function( prop, val ) {
 
-						if ( !cache[ "_" + prop ] && ( cache[ "_" + prop ] = 1 ) ) {
+						propType = prop.indexOf( "$" ) === 0 ? 1 :
+								prop.indexOf( "get " ) === 0 ? 2 :
+								prop.indexOf( "set " ) === 0 ? 3 :
+								prop === "toString" ? 4 : 0;
 
-							propType = prop.indexOf( "$" ) === 0 ? 1 :
-									prop.indexOf( "get " ) === 0 ? 2 :
-									prop.indexOf( "set " ) === 0 ? 3 : 0;
+						if ( propType ) {
 
-							if ( propType ) {
+							hasAccessors = true;
 
-								hasAccessors = true;
+							nm = propType === 4 ? "(" + prop + ")" :
+								propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop();
 
-								nm = propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop();
-
-								if ( propType === 1 || propType === 2 ) {
-									parts.push(
-										"Public Property Get [" + nm + "]",
-										propType === 1 ? copy.__get ? "[" + nm + "] = me.[__get]( \"" + nm + "\" )" : "" :
-										copy[ prop ] ? "[" + nm + "] = me.[" + prop + "]()" : "",
-										"End Property"
-									);
-								}
-								if ( propType === 1 || propType === 3 ) {
-									parts.push(
-										"Public Property Let [" + nm + "]( val )",
-										propType === 1 ? copy.__set ? "Call me.[__set]( \"" + nm + "\", val )" : "" :
-										copy[ prop ] ? "Call me.[" + prop + "]( val )" : "",
-										"End Property",
-										"Public Property Set [" + nm + "]( val )",
-										propType === 1 ? copy.__set ? "Call me.[__set]( \"" + nm + "\", val )" : "" :
-										copy[ prop ] ? "Call me.[" + prop + "]( val )" : "",
-										"End Property"
-									);
-								}
-
+							if ( propType === 1 || propType === 2 || propType === 4 ) {
+								parts.push(
+									"Public " +
+									( propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
+									"Call VBCorrectVal(" +
+									( propType === 1 ? copy.__get ? "me.[__get]( \"" + nm + "\" )" : "" :
+									copy[ prop ] ? "me.[" + prop + "]()" : "" ) + ", [" + nm + "])",
+									"End Property"
+								);
 							}
-
-							if ( !propType || propType > 1 ) {
-								// VBScript up to 60 multiple dimensions may be declared.
-								if ( names.length === 50 ) { // flush 50 items
-									parts.push( "Public [" + names.join("],[") + "]" );
-									names.length = 0;
-								}
-								names[ names.length ] = prop;
-								props[ props.length ] = prop;
+							if ( propType === 1 || propType === 3 ) {
+								parts.push(
+									"Public Property Let [" + nm + "]( val )",
+									propType === 1 ?
+									copy.__set ? "Call me.[__set]( \"" + nm + "\", val )" : "" :
+									copy[ prop ] ? "Call me.[" + prop + "]( val )" : "",
+									"End Property",
+									"Public Property Set [" + nm + "]( val )",
+									propType === 1 ?
+									copy.__set ? "Call me.[__set]( \"" + nm + "\", val )" : "" :
+									copy[ prop ] ? "Call me.[" + prop + "]( val )" : "",
+									"End Property"
+								);
 							}
+						}
+
+						if ( !propType || propType > 1 ) {
+							// VBScript up to 60 multiple dimensions may be declared.
+							if ( names.length === 50 ) { // flush 50 items
+								parts.push( "Public [" + names.join("],[") + "]" );
+								names.length = 0;
+							}
+							names[ names.length ] = prop;
+							props[ props.length ] = prop;
 						}
 
 					}, true );
@@ -243,32 +242,27 @@
 
 						execVBScript( parts.join( "\n" ) );
 
-						cache = window[ staticClass + "Factory" ]();
+						staticClass = window[ staticClass + "Factory" ]();
 
 						for( var i = 0; parts = props[ i++ ]; ) {
-							cache[ parts ] = copy[ parts ];
+							staticClass[ parts ] = copy[ parts ];
 						}
 
-						props = parts = names = null;
-
-						owner.obj = copy = cache;
+						owner.obj = copy = staticClass;
 					}
-				}
 
-				cache = null;
+					props = parts = names = staticClass = null;
+				}
 			}
 
 			var subConstructor = isParent ? function() {
-				return copy; 
+				return copy;
 			} : function() {
 				if ( copy.constructor && copy.constructor !== Object.prototype.constructor ) {
 					copy.constructor.apply( copy, args );
 				}
 				return copy;
 			}
-
-			subConstructor.prototype = copy;
-			staticConstructor.prototype = copy;
 
 			return new subConstructor();
 		}
@@ -293,18 +287,20 @@
 
 			val = obj[ idx ];
 
-			if ( ( all || hasOwnProperty.call( obj, idx ) ) &&
+			if ( ( ( all && val !== Object.prototype[ idx ] ) || hasOwnProperty.call( obj, idx ) ) &&
 					callback.call( val, idx, val ) === false ) {
 				len = false;
 				break;
 			}
 		}
+
 		if ( len && hasDontEnumBug ) {
 			for( idx = 0; idx < len; idx++ ) {
 
 				val = obj[ dontEnums[ idx ] ];
 
-				if ( ( hasOwnProperty.call( obj, dontEnums[ idx ] ) || ( all && val != null ) ) &&
+				if ( ( hasOwnProperty.call( obj, dontEnums[ idx ] ) ||
+					( all && val != null && val !== Object.prototype[ dontEnums[ idx ] ] ) ) &&
 						callback.call( val, dontEnums[ idx ], val ) === false ) {
 					break;
 				}
