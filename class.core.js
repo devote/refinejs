@@ -187,9 +187,7 @@
 
 						if ( propType ) {
 
-							hasAccessors = true;
-
-							nm = propType === 4 ? "(" + prop + ")" :
+							nm = propType === 4 ? "(" + prop + ")" : ( hasAccessors = 1 ) &&
 								propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop();
 
 							if ( propType === 1 || propType === 2 || propType === 4 ) {
