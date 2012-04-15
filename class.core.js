@@ -197,8 +197,9 @@
 									"Public " +
 									( propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
 									"Call VBCorrectVal(" +
-									( propType === 1 ? copy.__get ? "me.[__get]( \"" + nm + "\" )" : "" :
-									copy[ prop ] ? "me.[" + prop + "]()" : "" ) + ", [" + nm + "])",
+									( propType === 1 ?
+									copy.__get ? "me.[__get].call( me, \"" + nm + "\" )" : "" :
+									copy[ prop ] ? "me.[" + prop + "].call( me )" : "" ) + ", [" + nm + "])",
 									"End Property"
 								);
 							}
@@ -206,13 +207,13 @@
 								parts.push(
 									"Public Property Let [" + nm + "]( val )",
 									propType === 1 ?
-									copy.__set ? "Call me.[__set]( \"" + nm + "\", val )" : "" :
-									copy[ prop ] ? "Call me.[" + prop + "]( val )" : "",
+									copy.__set ? "Call me.[__set].call( me, \"" + nm + "\", val )" : "" :
+									copy[ prop ] ? "Call me.[" + prop + "].call( me, val )" : "",
 									"End Property",
 									"Public Property Set [" + nm + "]( val )",
 									propType === 1 ?
-									copy.__set ? "Call me.[__set]( \"" + nm + "\", val )" : "" :
-									copy[ prop ] ? "Call me.[" + prop + "]( val )" : "",
+									copy.__set ? "Call me.[__set].call( me, \"" + nm + "\", val )" : "" :
+									copy[ prop ] ? "Call me.[" + prop + "].call( me, val )" : "",
 									"End Property"
 								);
 							}
