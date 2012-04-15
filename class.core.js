@@ -1,5 +1,5 @@
 /*
- * class.core.js Library for JavaScript v0.2.1
+ * class.core.js Library for JavaScript v0.2.2
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -20,6 +20,7 @@
 		libID = ( new Date() ).getTime(),
 		VBInc = ( Object.defineProperty || Object.prototype.__defineGetter__ ) && ( !msie || msie > 8 ) ? 0 : 1,
 		hasOwnProperty = Object.prototype.hasOwnProperty,
+		toString = Object.prototype.toString,
 		hasDontEnumBug = !( { toString: null } ).propertyIsEnumerable( 'toString' ),
 		dontEnums = [
 			'toString',
@@ -38,7 +39,9 @@
 
 	function Class( context, rule, parentClass, struct ) {
 
-		var nm, rules, className;
+		var nm, rules, className,
+			first = 1, accessors = [],
+			staticClass = false;
 
 		if ( arguments.length < 3 || typeof context === "string" ) {
 			struct = parentClass;
@@ -48,7 +51,7 @@
 		}
 
 		rules = typeof rule === "string" ? rule.replace( /^[\s]+|[\s](?=\s)|[\s]+$/g, '' ).split( " " ) : [];
-		className = rules[ 0 ] && rules[ 0 ] !== "extends" && rules.shift() || false;
+		className = rules[ 0 ] && rules[ 0 ] !== "extends" && rules.shift() || 0;
 
 		if ( !struct ) {
 			struct = parentClass;
@@ -112,19 +115,21 @@
 				owner.obj = isParent ? owner.obj : copy;
 			}
 
-			copy.static = staticConstructor;
+			copy["static"] = staticConstructor;
 
-			if ( !isParent ) {
+			if ( !isParent && accessors !== 0 ) {
 
 				if ( !VBInc ) {
 
-					Class.ownEach( copy, function( prop, val ) {
+					Class.ownEach( first ? copy : accessors, function( prop, val ) {
 
 						var propType = prop.indexOf( "$" ) === 0 ? 1 :
 								prop.indexOf( "get " ) === 0 ? 2 :
 								prop.indexOf( "set " ) === 0 ? 3 : 0;
 
 						if ( propType ) {
+
+							first && ( accessors[ accessors.length ] = prop );
 
 							var nm = propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop(),
 								props = {
@@ -169,88 +174,101 @@
 							}
 						}
 
-					}, true );
+					}, 1 );
+
+					if ( first && !( first = 0 ) && accessors.length === 0 ) {
+						accessors = 0;
+					}
 
 				} else if ( msie ) {
 
-					var staticClass = "StaticClass" + libID + VBInc++,
-						parts = [ "Class " + staticClass ],
-						props = [], names = [], propType, nm,
-						hasAccessors = false;
+					if ( staticClass === false ) {
 
-					Class.ownEach( copy, function( prop, val ) {
+						staticClass = "StaticClass" + libID + VBInc++;
 
-						propType = prop.indexOf( "$" ) === 0 ? 1 :
-								prop.indexOf( "get " ) === 0 ? 2 :
-								prop.indexOf( "set " ) === 0 ? 3 :
-								prop === "toString" ? 4 : 0;
+						var names = [], hasAccessors = 0,
+							parts = [ "Class " + staticClass ];
 
-						if ( propType ) {
+						Class.ownEach( copy, function( prop, val ) {
 
-							nm = propType === 4 ? "(" + prop + ")" : ( hasAccessors = 1 ) &&
-								propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop();
+							var propType = prop.indexOf( "$" ) === 0 ? 1 :
+									prop.indexOf( "get " ) === 0 ? 2 :
+									prop.indexOf( "set " ) === 0 ? 3 :
+									prop === "toString" ? 4 : 0;
 
-							if ( propType === 1 || propType === 2 || propType === 4 ) {
-								parts.push(
-									"Public " +
-									( propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
-									"Call VBCorrectVal(" +
-									( propType === 1 ?
-									copy.__get ? "me.[__get].call( me, \"" + nm + "\" )" : "" :
-									copy[ prop ] ? "me.[" + prop + "].call( me )" : "" ) + ", [" + nm + "])",
-									"End Property"
-								);
+							if ( propType ) {
+
+								var nm = propType === 4 ? "(" + prop + ")" : ( hasAccessors = 1 ) &&
+									propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop();
+
+								if ( propType === 1 || propType === 2 || propType === 4 ) {
+									parts.push(
+										"Public " +
+										( propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
+										"Call VBCorrectVal(" +
+										( propType === 1 ?
+										copy.__get ? "me.[__get].call( me, \"" + nm + "\" )" : "" :
+										copy[ prop ] ? "me.[" + prop + "].call( me )" : "" ) + ", [" + nm + "])",
+										"End Property"
+									);
+								}
+								if ( propType === 1 || propType === 3 ) {
+									parts.push(
+										"Public Property Let [" + nm + "]( val )",
+										propType === 1 ?
+										copy.__set ? "Call me.[__set].call( me, \"" + nm + "\", val )" : "" :
+										copy[ prop ] ? "Call me.[" + prop + "].call( me, val )" : "",
+										"End Property",
+										"Public Property Set [" + nm + "]( val )",
+										propType === 1 ?
+										copy.__set ? "Call me.[__set].call( me, \"" + nm + "\", val )" : "" :
+										copy[ prop ] ? "Call me.[" + prop + "].call( me, val )" : "",
+										"End Property"
+									);
+								}
 							}
-							if ( propType === 1 || propType === 3 ) {
-								parts.push(
-									"Public Property Let [" + nm + "]( val )",
-									propType === 1 ?
-									copy.__set ? "Call me.[__set].call( me, \"" + nm + "\", val )" : "" :
-									copy[ prop ] ? "Call me.[" + prop + "].call( me, val )" : "",
-									"End Property",
-									"Public Property Set [" + nm + "]( val )",
-									propType === 1 ?
-									copy.__set ? "Call me.[__set].call( me, \"" + nm + "\", val )" : "" :
-									copy[ prop ] ? "Call me.[" + prop + "].call( me, val )" : "",
-									"End Property"
-								);
+
+							if ( !propType || propType > 1 ) {
+								// VBScript up to 60 multiple dimensions may be declared.
+								if ( names.length === 50 ) { // flush 50 items
+									parts.push( "Public [" + names.join("],[") + "]" );
+									names.length = 0;
+								}
+								names[ names.length ] = prop;
+								accessors[ accessors.length ] = prop;
 							}
+
+						}, 1 );
+
+						if ( hasAccessors ) {
+
+							parts.push(
+								"Public [" + names.join("],[") + "]",
+								"End Class",
+								"Function " + staticClass + "Factory()",
+								"Set " + staticClass + "Factory=New " + staticClass,
+								"End Function"
+							);
+
+							execVBScript( parts.join( "\n" ) );
+						} else {
+							accessors = 0;
+							staticClass = null;
 						}
 
-						if ( !propType || propType > 1 ) {
-							// VBScript up to 60 multiple dimensions may be declared.
-							if ( names.length === 50 ) { // flush 50 items
-								parts.push( "Public [" + names.join("],[") + "]" );
-								names.length = 0;
-							}
-							names[ names.length ] = prop;
-							props[ props.length ] = prop;
-						}
-
-					}, true );
-
-					if ( hasAccessors ) {
-
-						parts.push(
-							"Public [" + names.join("],[") + "]",
-							"End Class",
-							"Function " + staticClass + "Factory()",
-							"Set " + staticClass + "Factory=New " + staticClass,
-							"End Function"
-						);
-
-						execVBScript( parts.join( "\n" ) );
-
-						staticClass = window[ staticClass + "Factory" ]();
-
-						for( var i = 0; parts = props[ i++ ]; ) {
-							staticClass[ parts ] = copy[ parts ];
-						}
-
-						owner.obj = copy = staticClass;
+						names = parts = null;
 					}
 
-					props = parts = names = staticClass = null;
+					if ( staticClass ) {
+
+						owner.obj = window[ staticClass + "Factory" ]();
+
+						for( var i = accessors.length; nm = accessors[ --i ]; ) {
+							owner.obj[ nm ] = copy[ nm ];
+						}
+
+						copy = owner.obj;
+					}
 				}
 			}
 
@@ -282,6 +300,22 @@
 
 		var idx, val, len = dontEnums.length;
 
+		if ( toString.call( obj ) === "[object Array]" ) {
+
+			len = obj.length;
+
+			for( idx = 0; idx < len; idx++ ) {
+
+				val = obj[ idx ];
+
+				if ( callback.call( obj[ idx ], all ? val : idx, all ? idx : val ) === false ) {
+					break;
+				}
+			}
+
+			return;
+		}
+
 		for( idx in obj ) {
 
 			val = obj[ idx ];
@@ -309,9 +343,9 @@
 
 	Class.instanceOf = function( object, constructor ) {
 
-		while( object && object.static != null ) {
+		while( object && object["static"] != null ) {
 
-			if ( object.static === constructor ) {
+			if ( object["static"] === constructor ) {
 				return true;
 			}
 			object = object.parent;
