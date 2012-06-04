@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.3.0
+ * core.class.js Library for JavaScript v0.3.1
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 03-06-2012
+ * Update: 04-06-2012
  */
 
 (function( global, True, False, Null, undefined ) {
@@ -149,7 +149,7 @@
 						copy[ prop ] = function() {
 							var p = owner.obj.parent, c = owner.obj["Class"];
 							owner.obj.parent = obj.parent;
-							owner.obj["Class"] = obj["Class"];
+							owner.obj["Class"] = copy["Class"];
 							var result = originalProp.apply( this === copy || this == global ? owner.obj : this, arguments );
 							owner.obj["Class"] = c;
 							owner.obj.parent = p;
