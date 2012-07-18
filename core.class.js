@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.3.1
+ * core.class.js Library for JavaScript v0.3.2
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 04-06-2012
+ * Update: 17-07-2012
  */
 
 (function( global, True, False, Null, undefined ) {
@@ -108,9 +108,10 @@
 
 		if ( struct && ( nm || rules.shift() === "extends" || typeof rule === "function" ) ) {
 			if ( ( nm || ( nm = rules.shift() ) ) && !( rule = context[ nm ] ) ) {
-				throw new Error( "Parent class '" + nm + "' not Initialized or Undefined" );
+				parentClass = nm;
+			} else {
+				parentClass = rule;
 			}
-			parentClass = rule;
 		}
 
 		if ( typeof struct !== "function" ) {
@@ -132,6 +133,16 @@
 			obj.parent = Null;
 
 			if ( parentClass ) {
+
+				if ( typeof parentClass === "string" ) {
+
+					if ( !( parentClass = context[ copy = parentClass ] ||
+						typeof Class["autoload"] === "function" &&
+						Class["autoload"].call( context, copy ) ||
+						context[ copy ] ) ) {
+						throw new Error( "Parent class '" + copy + "' not Initialized or Undefined" );
+					}
+				}
 
 				obj.parent = parentClass.call( False, owner );
 
@@ -261,7 +272,7 @@
 										( propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
 										"Call VBCorrectVal(" +
 										( propType === 1 ?
-										copy.__get ? "me.[__get].call(me,\"" + nm + "\")" : "" :
+										copy["__get"] ? "me.[__get].call(me,\"" + nm + "\")" : "" :
 										copy[ prop ] ? "me.[" + prop + "].call(me)" : "" ) + ",[" + nm + "])",
 										"End Property"
 									);
@@ -270,12 +281,12 @@
 									parts.push(
 										"Public Property Let [" + nm + "](val)",
 										propType === 1 ?
-										copy.__set ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
+										copy["__set"] ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
 										copy[ prop ] ? "Call me.[" + prop + "].call(me,val)" : "",
 										"End Property",
 										"Public Property Set [" + nm + "](val)",
 										propType === 1 ?
-										copy.__set ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
+										copy["__set"] ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
 										copy[ prop ] ? "Call me.[" + prop + "].call(me,val)" : "",
 										"End Property"
 									);
