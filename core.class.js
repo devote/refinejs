@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.3.2
+ * core.class.js Library for JavaScript v0.4.0
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,14 +9,16 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 17-07-2012
+ * Update: 20-07-2012
  */
 
-(function( global, True, False, Null, undefined ) {
+(function( window, True, False, Null, undefined ) {
 
 	"use strict";
 
 	var
+		document = window.document,
+		html = document.documentElement,
 		msie = eval("/*@cc_on (@_jscript_version+'').replace(/\\d\\./, '');@*/"),
 		libID = ( new Date() ).getTime(),
 		VBInc = ( Object.defineProperty || Object.prototype.__defineGetter__ ) && ( !msie || msie > 8 ) ? 0 : 1,
@@ -69,7 +71,11 @@
 			first = 1, accessors = [],
 			staticClass = False,
 			emptyFunction = function(){},
-			args = arguments;
+			getParent = function( context, name, nm ) {
+				name = name.split( "." );
+				while( ( nm = name.shift() ) && ( context = context[ nm ] ) ) {}
+				return context;
+			};
 
 		if ( arguments.length < 3 || typeof context === "string" ||
 			( typeof context === "function" && typeof rule === "object" ) ) {
@@ -107,7 +113,7 @@
 		}
 
 		if ( struct && ( nm || rules.shift() === "extends" || typeof rule === "function" ) ) {
-			if ( ( nm || ( nm = rules.shift() ) ) && !( rule = context[ nm ] ) ) {
+			if ( ( nm || ( nm = rules.shift() ) ) && !( rule = getParent( context, nm ) ) ) {
 				parentClass = nm;
 			} else {
 				parentClass = rule;
@@ -136,10 +142,10 @@
 
 				if ( typeof parentClass === "string" ) {
 
-					if ( !( parentClass = context[ copy = parentClass ] ||
+					if ( !( parentClass = getParent( context, copy = parentClass ) ||
 						typeof Class["autoload"] === "function" &&
 						Class["autoload"].call( context, copy ) ||
-						context[ copy ] ) ) {
+						getParent( context, copy ) ) ) {
 						throw new Error( "Parent class '" + copy + "' not Initialized or Undefined" );
 					}
 				}
@@ -161,7 +167,7 @@
 							var p = owner.obj.parent, c = owner.obj["Class"];
 							owner.obj.parent = obj.parent;
 							owner.obj["Class"] = copy["Class"];
-							var result = originalProp.apply( this === copy || this == global ? owner.obj : this, arguments );
+							var result = originalProp.apply( this === copy || this == window ? owner.obj : this, arguments );
 							owner.obj["Class"] = c;
 							owner.obj.parent = p;
 							return result;
@@ -360,8 +366,19 @@
 		}
 
 		if ( className ) {
-			context[ className ] = staticConstructor;
-			context[ className ].className = className;
+			nm = context;
+			staticConstructor.className = className;
+			rule = ( rules = className.split( "." ) ).shift();
+			do {
+				if ( rules.length === 0 ) {
+					nm[ rule ] = staticConstructor;
+				} else {
+					if ( !( rule in nm ) ) {
+						nm[ rule ] = {};
+					}
+					nm = nm[ rule ];
+				}
+			} while( rule = rules.shift() );
 		}
 
 		return staticConstructor;
@@ -424,55 +441,305 @@
 		return False;
 	}
 
-	Class["include"] = function( path, callback ) {
+	Class["absoluteURL"] = (function( a ) {
+		return function( url, root ) {
 
-		path = /^(?:http\:)?\/[\/]?/i.test( path ) ? path : rootPath + path;
+			if ( root && !/^(?:https?:)?\/[\/]?/.test( url ) ) {
+				url = ( typeof root === "string" ? root : rootPath ) + url;
+			}
 
-		if ( importedModules[ path ] ) {
+			root = window.location;
 
-			callback && callback();
+			var
+				protocol,
+				pathname = root.pathname,
 
-			return;
+			// convert relative link to the absolute
+			url = /^(?:[a-z]+\:)?\/\//.test( url ) ?
+				url : root.protocol + "//" + root.host + (
+				url.indexOf( "/" ) === 0 ? url :
+				url.indexOf( "?" ) === 0 ? pathname + url :
+				url.indexOf( "#" ) === 0 ? pathname + root.search + url :
+				pathname.replace( /[^\/]+$/g, '' ) + url
+			);
+
+			a.href = url;
+
+			protocol = a.protocol;
+			pathname = a.pathname;
+
+			url = ( protocol === ":" ? root.protocol : protocol ) + "//";
+
+			// Internet Explorer adds the port number to standard protocols
+			if ( ( protocol === "http:" && a.port == 80 ) ||
+				( protocol === "https:" && a.port == 443 ) ) {
+				url += a.hostname;
+			} else {
+				url += a.host;
+			}
+
+			// Internet Explorer removes the slash at the beginning the way, we need to add it back
+			return url + ( pathname.indexOf( "/" ) === 0 ? pathname : "/" + pathname ) + a.search + a.hash;
 		}
+	})( document.createElement( "A" ) );
 
-		var req = new XMLHttpRequest(),
-		    async = !!callback;
+	Class["imports"] = (function() {
 
-		req.open( 'GET', path, async );
-		req.onreadystatechange = function() {
+		var queue = [],
+			hasLocal = new RegExp( "^((?:" + location.protocol + ")?//" + location.host + "(?:/|$)|/[^/]|(?!(?:https?:)?//))", "i" ),
+			isSupportPseudo_NOT = (function() {
+				try {
+					document.querySelectorAll( 'html:not(a)' );
+					return True;
+				} catch( _e_ ) {}
+				return False;
+			})();
 
-			if ( req.readyState === 4 ) {
-
-				if ( req.status >= 200 && req.status < 300 || req.status === 304 ) {
-
-					importedModules[ path ] = 1;
-
-					try {
-						( window.execScript || function( data ) {
-							window[ "eval" ].call( window, data );
-						} )( req.responseText );
-					} catch( _e_ ) {
-
-						delete importedModules[ path ];
-
-						throw new Error( 'Error executing module "' + path + '". ' + _e_ );
-					}
-
-					callback && callback();
-				} else {
-
-					throw new Error( 'Module ' + path + ' not found' );
-				}
+		function throwError( status, url ) {
+			if ( Class["imports"]["onerror"] ) {
+				Class["imports"]["onerror"]( status, url );
+			} else {
+				throw new Error( status == 404 ? 'Module ' + url + ' not found' : 'Error executing module "' + url + '".' );
 			}
 		}
 
-		req.send( Null );
-	}
+		function xhrLoad( url, async, onLoad, onError ) {
 
-	Class["ownEach"].toString = Class["instanceOf"].toString = Class["include"].toString = Class.toString = function() {
+			if ( url in importedModules ) {
+				return onLoad( url );
+			}
+
+			var
+				noCacheURL = url + ( url.indexOf( "?" ) > 0 ? "&" : "?" ) + ( new Date() ).getTime(),
+				req = new XMLHttpRequest();
+
+			req.open( 'GET', Class["imports"]["disableCaching"] ? noCacheURL : url, async );
+
+			req.onreadystatechange = function() {
+				if ( req.readyState === 4 ) {
+
+					var status = ( req.status === 1223 ) ? 204 :
+						( req.status === 0 && ( self.location || {} ).protocol == 'file:' ) ? 200 : req.status;
+
+					if ( status >= 200 && status < 300 || status === 304 ) {
+						try {
+							( window.execScript || function( data ) {
+								window[ "eval" ].call( window, data );
+							} )( req.responseText + ( !msie ? "\n//@ sourceURL=" + url : "" ) );
+						} catch( _e_ ) {
+							return onError( status, url );
+						}
+						onLoad( url );
+					} else {
+						onError( status, url );
+					}
+				}
+			}
+
+			req.send( Null );
+		}
+
+		function asyncLoad( data ) {
+
+			if ( data ) {
+
+				queue.unshift( data );
+
+				if ( queue.length > 1 ) {
+					return;
+				}
+			} else if ( queue.length === 0 ) {
+
+				return;
+			}
+
+			data = queue[ 0 ];
+
+			var
+				script,
+				dispatched = False,
+				url = data.scripts.shift(),
+				onLoad = function( url ) {
+
+					if ( !dispatched ) {
+
+                        dispatched = True;
+
+						importedModules[ url ] = 1;
+
+						while( queue.length && queue[ 0 ].scripts.length === 0 ) {
+
+							data = queue.shift();
+
+							data.onLoad && data.onLoad.call( data.scope || Class );
+						}
+
+						asyncLoad();
+					}
+				},
+
+				onError = function( status, url ) {
+
+					if ( data.onError && data.onError.call( data.scope || Class, status, url ) ) {
+
+						if ( queue[ 0 ].scripts.length === 0 ) {
+							queue.shift();
+						}
+
+					} else {
+
+						if ( !data.onError ) {
+							throwError( status, url );
+						}
+
+						queue.shift();
+					}
+
+					asyncLoad();
+				},
+
+				cleanupScript = function( prop ) {
+
+					if ( script ) {
+
+						script.onload = script.onreadystatechange = script.onerror = null;
+						script.parentNode.removeChild( script );
+
+						for( prop in script ) {
+							try {
+								script[ prop ] = Null;
+								delete script[ prop ];
+							} catch( _e_ ) {}
+						}
+
+						script = Null;
+					}
+				};
+
+			if ( data.isLocal ) {
+
+				xhrLoad( url, True, onLoad, onError );
+
+			} else {
+
+				// inject script
+				script = document.createElement( 'script' );
+
+				script.type = 'text/javascript';
+
+				script.onerror = function() {
+					cleanupScript();
+					onError( 404, url );
+				}
+
+				if ( "onload" in script || !( "readyState" in script ) ) {
+					script.onload = function() {
+						cleanupScript();
+						onLoad( url );
+					}
+				} else {
+					script.onreadystatechange = function() {
+						if ( this.readyState == "loaded" || this.readyState == "complete" ) {
+							cleanupScript();
+							onLoad( url );
+						}
+					}
+				}
+
+	            script.src = url + ( Class["imports"]["disableCaching"] ? ( url.indexOf( "?" ) > 0 ? "&" : "?" ) + ( new Date() ).getTime() : "" );
+
+	            (html.firstChild || document.getElementsByTagName('head')[0]).appendChild( script );
+			}
+		}
+
+		return function( scripts, onLoad, onError, scope ) {
+
+			scripts = typeof scripts === "string" ? [ scripts ] : scripts;
+
+			var
+				i = 0,
+				script,
+				isLocal = True,
+				async = !!onLoad,
+				length = scripts.length,
+				queueModules = {},
+				loadedScripts = isSupportPseudo_NOT ?
+					document.querySelectorAll( 'script[src]:not([data-calmjs="1"])' ) :
+					document.getElementsByTagName( 'script' );
+
+			for( ; script = loadedScripts[ i++ ]; ) {
+
+				script.setAttribute( "data-calmjs", "1" );
+
+				if ( script = script.getAttribute( "src" ) ) {
+					importedModules[ Class["absoluteURL"]( script, rootPath ) ] = 1;
+				}
+			}
+
+			for( ; length--; ) {
+
+				if ( !hasLocal.test( scripts[ length ] = Class["absoluteURL"]( scripts[ length ], rootPath ) ) ) {
+					isLocal = False;
+				}
+
+				if ( scripts[ length ] in importedModules || scripts[ length ] in queueModules ) {
+					scripts.splice( length, 1 );
+				} else {
+					queueModules[ scripts[ length ] ] = 1;
+				}
+			}
+
+			if ( scripts.length === 0 ) {
+				return onLoad && onLoad.call( scope || Class );
+			}
+
+			if ( isLocal && !async ) {
+
+				// synchronous loading
+				while( script = scripts.shift() ) {
+
+					xhrLoad( script, False, function( url ) {
+
+						importedModules[ url ] = 1;
+
+						isLocal = False;
+
+					}, function( status, url ) {
+
+						if ( onError && onError.call( scope || Class, status, url ) ) {
+							isLocal = False;
+						} else if ( !onError ) {
+							throwError( status, url );
+						}
+					});
+
+					if ( isLocal ) {
+						return;
+					}
+
+					isLocal = True;
+				}
+
+				return onLoad && onLoad.call( scope || Class );
+
+			} else {
+
+				// asynchronous loading
+				asyncLoad({
+					scope: scope || Class,
+					isLocal: isLocal,
+					scripts: scripts,
+					onLoad: onLoad || Null,
+					onError: onError || Null
+				});
+			}
+		}
+	})();
+
+	Class["ownEach"].toString = Class["instanceOf"].toString = Class["absoluteURL"].toString = Class["imports"].toString = Class.toString = function() {
 		return "[object Function]";
 	}
 
-	global["Class"] = Class;
+	window["Class"] = Class;
 
 })( window, true, false, null );
