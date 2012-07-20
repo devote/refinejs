@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.4.0
+ * core.class.js Library for JavaScript v0.4.1
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 20-07-2012
+ * Update: 21-07-2012
  */
 
 (function( window, True, False, Null, undefined ) {
@@ -102,7 +102,7 @@
 				parentClass = statical = Null;
 			} else if ( typeof parentClass === "object" ) {
 				statical = parentClass;
-				parentClass = null;
+				parentClass = Null;
 			} else {
 				statical = Null;
 			}
@@ -563,7 +563,7 @@
 
 					if ( !dispatched ) {
 
-                        dispatched = True;
+						dispatched = True;
 
 						importedModules[ url ] = 1;
 
@@ -602,7 +602,7 @@
 
 					if ( script ) {
 
-						script.onload = script.onreadystatechange = script.onerror = null;
+						script.onload = script.onreadystatechange = script.onerror = Null;
 						script.parentNode.removeChild( script );
 
 						for( prop in script ) {
@@ -616,9 +616,14 @@
 					}
 				};
 
-			if ( data.isLocal ) {
+			if ( data.isLocal && msie && msie < 9 ) {
 
+				// Internet Explorer < 9 load a fast script via XHR
 				xhrLoad( url, True, onLoad, onError );
+
+			} else if ( url in importedModules ) {
+
+				onLoad( url );
 
 			} else {
 
