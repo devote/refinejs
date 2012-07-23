@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.4.1
+ * core.class.js Library for JavaScript v0.4.2
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 21-07-2012
+ * Update: 23-07-2012
  */
 
 (function( window, True, False, Null, undefined ) {
@@ -19,13 +19,16 @@
 	var
 		document = window.document,
 		html = document.documentElement,
-		msie = eval("/*@cc_on (@_jscript_version+'').replace(/\\d\\./, '');@*/"),
 		libID = ( new Date() ).getTime(),
-		VBInc = ( Object.defineProperty || Object.prototype.__defineGetter__ ) && ( !msie || msie > 8 ) ? 0 : 1,
-		importedModules = {},
-		hasOwnProperty = Object.prototype.hasOwnProperty,
 		toString = Object.prototype.toString,
+		defineProperty = Object.defineProperty,
+		hasOwnProperty = Object.prototype.hasOwnProperty,
+		scripts = document.getElementsByTagName( 'script' ),
+		rootPath = ( scripts[ scripts.length - 1 ] || { src: "/" } ).src.replace( /[^\/]+$/g, "" ),
+		msie = eval("/*@cc_on (@_jscript_version+'').replace(/\\d\\./, '');@*/"),
+		VBInc = ( defineProperty || Object.prototype.__defineGetter__ ) && ( !msie || msie > 8 ) ? 0 : 1,
 		hasDontEnumBug = !( { toString: Null } ).propertyIsEnumerable( 'toString' ),
+		importedModules = {},
 		dontEnums = [
 			'toString',
 			'toLocaleString',
@@ -34,19 +37,7 @@
 			'isPrototypeOf',
 			'propertyIsEnumerable',
 			'constructor'
-		],
-
-	rootPath = (function(){
-
-		if ( VBInc && !( "execVBscript" in window ) ) {
-			execScript('Function execVBscript(code) ExecuteGlobal(code) End Function\n'+
-				'Function VBCorrectVal(o,r) If IsObject(o) Then Set r=o Else r=o End If End Function', 'VBScript');
-		}
-
-		var scripts = document.getElementsByTagName( 'script' );
-
-		return ( scripts[ scripts.length - 1 ] || { src: "/" } ).src.replace( /[^\/]+$/g, "" );
-	})();
+		];
 
 	/*
 	*  Class( context, "className", parentClass, staticObject, classStructure )
@@ -67,7 +58,7 @@
 	function Class( context, rule, parentClass, statical, struct ) {
 
 		var
-			nm, rules = [], className,
+			nm, rules = [], className = "",
 			first = 1, accessors = [],
 			staticClass = False,
 			emptyFunction = function(){},
@@ -88,7 +79,7 @@
 
 		if ( typeof rule === "string" ) {
 			rules = rule.replace( /^[\s]+|[\s](?=\s)|[\s]+$/g, '' ).split( " " );
-			className = rules[ 0 ] && rules[ 0 ] !== "extends" && rules.shift() || 0;
+			className = rules[ 0 ] && rules[ 0 ] !== "extends" && rules.shift() || "";
 		} else {
 			struct = statical;
 			statical = parentClass;
@@ -223,14 +214,14 @@
 								}
 							}
 
-							if ( Object.defineProperty ) {
+							if ( defineProperty ) {
 
 								var descr = Object.getOwnPropertyDescriptor( copy, nm );
 
 								props.get = props.get || descr && descr.get || emptyFunction;
 								props.set = props.set || descr && descr.set || emptyFunction;
 
-								Object.defineProperty( copy, nm, props );
+								defineProperty( copy, nm, props );
 
 							} else {
 								if ( propType === 1 || propType === 2 ) {
@@ -299,15 +290,13 @@
 								}
 							}
 
-							if ( !propType || propType > 1 ) {
-								// VBScript up to 60 multiple dimensions may be declared.
-								if ( names.length === 50 ) { // flush 50 items
-									parts.push( "Public [" + names.join("],[") + "]" );
-									names.length = 0;
-								}
-								names[ names.length ] = prop;
-								accessors[ accessors.length ] = prop;
+							// VBScript up to 60 multiple dimensions may be declared.
+							if ( names.length === 50 ) { // flush 50 items
+								parts.push( "Public [" + names.join("],[") + "]" );
+								names.length = 0;
 							}
+							names[ names.length ] = prop;
+							accessors[ accessors.length ] = prop;
 
 						}, 1 );
 
@@ -365,9 +354,10 @@
 			});
 		}
 
+		staticConstructor.className = className;
+
 		if ( className ) {
 			nm = context;
-			staticConstructor.className = className;
 			rule = ( rules = className.split( "." ) ).shift();
 			do {
 				if ( rules.length === 0 ) {
@@ -487,13 +477,12 @@
 
 		var queue = [],
 			hasLocal = new RegExp( "^((?:" + location.protocol + ")?//" + location.host + "(?:/|$)|/[^/]|(?!(?:https?:)?//))", "i" ),
-			isSupportPseudo_NOT = (function() {
-				try {
-					document.querySelectorAll( 'html:not(a)' );
-					return True;
-				} catch( _e_ ) {}
-				return False;
-			})();
+			isSupportPseudo_NOT = False;
+
+		try {
+			document.querySelectorAll( 'html:not(a)' );
+			isSupportPseudo_NOT = True;
+		} catch( _e_ ) {}
 
 		function throwError( status, url ) {
 			if ( Class["imports"]["onerror"] ) {
@@ -618,11 +607,12 @@
 
 			if ( data.isLocal && msie && msie < 9 ) {
 
-				// Internet Explorer < 9 load a fast script via XHR
+				// Internet Explorer < 9 fast load and execute script via XHR
 				xhrLoad( url, True, onLoad, onError );
 
 			} else if ( url in importedModules ) {
 
+				// if the module was previously loaded
 				onLoad( url );
 
 			} else {
@@ -743,6 +733,11 @@
 
 	Class["ownEach"].toString = Class["instanceOf"].toString = Class["absoluteURL"].toString = Class["imports"].toString = Class.toString = function() {
 		return "[object Function]";
+	}
+
+	if ( VBInc && !( "execVBscript" in window ) ) {
+		execScript('Function execVBscript(code) ExecuteGlobal(code) End Function\n'+
+			'Function VBCorrectVal(o,r) If IsObject(o) Then Set r=o Else r=o End If End Function', 'VBScript');
 	}
 
 	window["Class"] = Class;
