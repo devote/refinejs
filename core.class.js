@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.4.2
+ * core.class.js Library for JavaScript v0.4.3
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 23-07-2012
+ * Update: 25-07-2012
  */
 
 (function( window, True, False, Null, undefined ) {
@@ -18,6 +18,7 @@
 
 	var
 		document = window.document,
+		emptyFunction = function(){},
 		html = document.documentElement,
 		libID = ( new Date() ).getTime(),
 		toString = Object.prototype.toString,
@@ -27,8 +28,8 @@
 		rootPath = ( scripts[ scripts.length - 1 ] || { src: "/" } ).src.replace( /[^\/]+$/g, "" ),
 		msie = eval("/*@cc_on (@_jscript_version+'').replace(/\\d\\./, '');@*/"),
 		VBInc = ( defineProperty || Object.prototype.__defineGetter__ ) && ( !msie || msie > 8 ) ? 0 : 1,
-		hasDontEnumBug = !( { toString: Null } ).propertyIsEnumerable( 'toString' ),
-		importedModules = {},
+		hasDontEnumBug = !( { toString: 1 } ).propertyIsEnumerable( 'toString' ),
+		ownEach, classByName, absoluteURL, importedModules = {},
 		dontEnums = [
 			'toString',
 			'toLocaleString',
@@ -39,81 +40,29 @@
 			'constructor'
 		];
 
-	/*
-	*  Class( context, "className", parentClass, staticObject, classStructure )
-	*  Class( context, "className", parentClass, classStructure )
-	*  Class( context, "className", staticObject, classStructure )
-	*  Class( context, "className", classStructure )
-	*
-	*  Class( "className", parentClass, staticObject, classStructure )
-	*  Class( "className", parentClass, classStructure )
-	*  Class( "className", staticObject, classStructure )
-	*  Class( "className", classStructure )
-	*
-	*  Class( parentClass, staticObject, classStructure )
-	*  Class( parentClass, classStructure )
-	*  Class( staticObject, classStructure )
-	*  Class( classStructure )
-	*/
-	function Class( context, rule, parentClass, statical, struct ) {
+	function Class() {
 
 		var
-			nm, rules = [], className = "",
-			first = 1, accessors = [],
+			first = 1,
+			accessors = [],
 			staticClass = False,
-			emptyFunction = function(){},
-			getParent = function( context, name, nm ) {
-				name = name.split( "." );
-				while( ( nm = name.shift() ) && ( context = context[ nm ] ) ) {}
-				return context;
-			};
+			args = arguments,
+			argsLen = args.length - 1,
+			_struct = args[ argsLen-- ] || {},
+			_static = typeof args[ argsLen ] === "object" ? args[ argsLen-- ] : {},
+			_parent = typeof args[ argsLen ] === "function" || typeof args[ argsLen - 1 ] === "string" ? args[ argsLen-- ] : "",
+			_names  = ( args[ argsLen-- ] || "" ).replace( /^[\s]+|[\s](?=\s)|[\s]+$/g, '' ).replace( /\s*,\s*/g, ',' ).split( " " ),
+			_context = args[ argsLen-- ] || _static["__context"] || Class["defaultContext"] || Class,
+			_class = _names[ 0 ] !== "extends" && _names.shift() || "",
+			_subs = ( _names.shift() === "extends" && _names.shift() || "" ).split( "," ),
+			_extends = _static["__extends"] || _parent || _subs.shift(),
+			_mixins = _static["__implements"] || _subs,
+			_implements = _mixins instanceof Array ? _mixins : [ _mixins ],
+			_implementsLen = _implements.length;
 
-		if ( arguments.length < 3 || typeof context === "string" ||
-			( typeof context === "function" && typeof rule === "object" ) ) {
-			struct = statical;
-			statical = parentClass;
-			parentClass = rule;
-			rule = context;
-			context = Class;
-		}
-
-		if ( typeof rule === "string" ) {
-			rules = rule.replace( /^[\s]+|[\s](?=\s)|[\s]+$/g, '' ).split( " " );
-			className = rules[ 0 ] && rules[ 0 ] !== "extends" && rules.shift() || "";
-		} else {
-			struct = statical;
-			statical = parentClass;
-			parentClass = rule;
-			rule = Null;
-		}
-
-		if ( !struct ) {
-			if ( !( struct = statical ) ) {
-				struct = parentClass;
-				parentClass = statical = Null;
-			} else if ( typeof parentClass === "object" ) {
-				statical = parentClass;
-				parentClass = Null;
-			} else {
-				statical = Null;
-			}
-		}
-
-		if ( typeof parentClass === "string" ) {
-			nm = parentClass;
-		}
-
-		if ( struct && ( nm || rules.shift() === "extends" || typeof rule === "function" ) ) {
-			if ( ( nm || ( nm = rules.shift() ) ) && !( rule = getParent( context, nm ) ) ) {
-				parentClass = nm;
-			} else {
-				parentClass = rule;
-			}
-		}
-
-		if ( typeof struct !== "function" ) {
-			var originalStruct = struct;
-			struct = function() {
+		if ( typeof _struct !== "function" ) {
+			var originalStruct = _struct;
+			_struct = function() {
 				return originalStruct;
 			}
 		}
@@ -123,36 +72,29 @@
 			var
 				isParent = +this === 0,
 				args = arguments,
-				obj = new struct(),
+				obj = new _struct(),
 				copy = obj,
 				owner = isParent ? args[ 0 ] : { obj: obj };
 
 			obj.parent = Null;
 
-			if ( parentClass ) {
+			if ( _extends ) {
 
-				if ( typeof parentClass === "string" ) {
+				_extends = classByName( _extends, _context, staticConstructor );
 
-					if ( !( parentClass = getParent( context, copy = parentClass ) ||
-						typeof Class["autoload"] === "function" &&
-						Class["autoload"].call( context, copy ) ||
-						getParent( context, copy ) ) ) {
-						throw new Error( "Parent class '" + copy + "' not Initialized or Undefined" );
-					}
-				}
-
-				obj.parent = parentClass.call( False, owner );
+				obj.parent = _extends.call( False, owner );
 
 				var Fn = function(){}
 				Fn.prototype = obj.parent;
 				copy = new Fn();
+
 			} else {
 				copy["shared"] = {}
 			}
 
-			if ( parentClass || isParent ) {
+			if ( _extends || isParent ) {
 
-				Class["ownEach"]( obj, function( prop, originalProp ) {
+				ownEach( obj, function( prop, originalProp ) {
 					if ( typeof originalProp === "function" ) {
 						copy[ prop ] = function() {
 							var p = owner.obj.parent, c = owner.obj["Class"];
@@ -174,11 +116,22 @@
 
 			copy["Class"] = staticConstructor;
 
+			for( var i = 0; i < _implementsLen; i++ ) {
+
+				_implements[ i ] = classByName( _implements[ i ], _context, staticConstructor );
+
+				ownEach( _implements[ i ].call( False, owner ), function( prop, value ) {
+					if ( copy[ prop ] === undefined ) {
+						copy[ prop ] = value;
+					}
+				}, 1 );
+			}
+
 			if ( !isParent && accessors !== 0 ) {
 
 				if ( !VBInc ) {
 
-					Class["ownEach"]( first ? copy : accessors, function( prop, val ) {
+					ownEach( first ? copy : accessors, function( prop, val ) {
 
 						var
 							propType = prop.indexOf( "$" ) === 0 ? 1 :
@@ -249,7 +202,7 @@
 							names = [], hasAccessors = 0,
 							parts = [ "Class " + staticClass ];
 
-						Class["ownEach"]( copy, function( prop, val ) {
+						ownEach( copy, function( prop, val ) {
 
 							var
 								propType = prop.indexOf( "$" ) === 0 ? 1 :
@@ -323,8 +276,8 @@
 
 						owner.obj = window[ staticClass + "Factory" ]();
 
-						for( var i = accessors.length; nm = accessors[ --i ]; ) {
-							owner.obj[ nm ] = copy[ nm ];
+						for( var i = accessors.length; first = accessors[ --i ]; ) {
+							owner.obj[ first ] = copy[ first ];
 						}
 
 						copy = owner.obj;
@@ -345,36 +298,57 @@
 		}
 
 		staticConstructor.toString = function() {
-			return "[class " + ( className || "Object" ) + "]";
+			return "[class " + ( _class || "Object" ) + "]";
 		}
 
-		if ( statical ) {
-			Class["ownEach"]( statical, function( prop ) {
-				staticConstructor[ prop ] = statical[ prop ];
-			});
-		}
+		ownEach( _static, function( prop, val ) {
+			staticConstructor[ prop ] = val;
+		});
 
-		staticConstructor.className = className;
+		if ( staticConstructor.className = _class ) {
 
-		if ( className ) {
-			nm = context;
-			rule = ( rules = className.split( "." ) ).shift();
+			var
+				context = _context,
+				prop = ( _names = _class.split( "." ) ).shift();
+
 			do {
-				if ( rules.length === 0 ) {
-					nm[ rule ] = staticConstructor;
+				if ( _names.length === 0 ) {
+					context[ prop ] = staticConstructor;
 				} else {
-					if ( !( rule in nm ) ) {
-						nm[ rule ] = {};
+					if ( !( prop in context ) ) {
+						context[ prop ] = {};
 					}
-					nm = nm[ rule ];
+					context = context[ prop ];
 				}
-			} while( rule = rules.shift() );
+			} while( prop = _names.shift() );
 		}
 
 		return staticConstructor;
 	}
 
-	Class["ownEach"] = function( obj, callback, all ) {
+	Class["classByName"] = classByName = function( name, context ) {
+
+		var
+			nm,
+			_name = name,
+			_context = context;
+
+		if ( typeof _name === "string" ) {
+			_name = _name.split( "." );
+			while( ( nm = _name.shift() ) && ( _context = _context[ nm ] ) ) {}
+			_name = _context;
+		}
+
+		if ( !_name && arguments[ 2 ] && typeof Class["autoload"] === "function" ) {
+			if ( !( _name = ( Class["autoload"].call( context, name, arguments[ 2 ] ) || classByName( name, context ) ) ) ) {
+				throw new Error( "Parent class '" + name + "' not Initialized or Undefined" );
+			}
+		}
+
+		return _name;
+	}
+
+	Class["ownEach"] = ownEach = function( obj, callback, all ) {
 
 		var idx, val, len = dontEnums.length;
 
@@ -431,7 +405,7 @@
 		return False;
 	}
 
-	Class["absoluteURL"] = (function( a ) {
+	Class["absoluteURL"] = absoluteURL = (function( a ) {
 		return function( url, root ) {
 
 			if ( root && !/^(?:https?:)?\/[\/]?/.test( url ) ) {
@@ -667,13 +641,13 @@
 				script.setAttribute( "data-calmjs", "1" );
 
 				if ( script = script.getAttribute( "src" ) ) {
-					importedModules[ Class["absoluteURL"]( script, rootPath ) ] = 1;
+					importedModules[ absoluteURL( script, rootPath ) ] = 1;
 				}
 			}
 
 			for( ; length--; ) {
 
-				if ( !hasLocal.test( scripts[ length ] = Class["absoluteURL"]( scripts[ length ], rootPath ) ) ) {
+				if ( !hasLocal.test( scripts[ length ] = absoluteURL( scripts[ length ], rootPath ) ) ) {
 					isLocal = False;
 				}
 
@@ -731,9 +705,11 @@
 		}
 	})();
 
-	Class["ownEach"].toString = Class["instanceOf"].toString = Class["absoluteURL"].toString = Class["imports"].toString = Class.toString = function() {
-		return "[object Function]";
-	}
+	ownEach( "classByName ownEach instanceOf absoluteURL imports".split( " " ), function( i, name ) {
+		Class[ name ].toString = Class.toString = function() {
+			return "[object Function]";
+		}
+	});
 
 	if ( VBInc && !( "execVBscript" in window ) ) {
 		execScript('Function execVBscript(code) ExecuteGlobal(code) End Function\n'+
