@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.4.3
+ * core.class.js Library for JavaScript v0.4.4
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 25-07-2012
+ * Update: 26-07-2012
  */
 
 (function( window, True, False, Null, undefined ) {
@@ -24,8 +24,8 @@
 		toString = Object.prototype.toString,
 		defineProperty = Object.defineProperty,
 		hasOwnProperty = Object.prototype.hasOwnProperty,
-		scripts = document.getElementsByTagName( 'script' ),
-		rootPath = ( scripts[ scripts.length - 1 ] || { src: "/" } ).src.replace( /[^\/]+$/g, "" ),
+		liveScripts = document.getElementsByTagName( 'script' ),
+		rootPath = ( liveScripts[ liveScripts.length - 1 ] || { src: "/" } ).src.replace( /[^\/]+$/g, "" ),
 		msie = eval("/*@cc_on (@_jscript_version+'').replace(/\\d\\./, '');@*/"),
 		VBInc = ( defineProperty || Object.prototype.__defineGetter__ ) && ( !msie || msie > 8 ) ? 0 : 1,
 		hasDontEnumBug = !( { toString: 1 } ).propertyIsEnumerable( 'toString' ),
@@ -49,14 +49,15 @@
 			args = arguments,
 			argsLen = args.length - 1,
 			_struct = args[ argsLen-- ] || {},
-			_static = typeof args[ argsLen ] === "object" ? args[ argsLen-- ] : {},
+			_options = typeof args[ argsLen ] === "object" ? args[ argsLen-- ] : {},
+			_static = _options["static"] || ( _options["context"] || _options["extends"] || _options["implements"] ? {} : _options ),
 			_parent = typeof args[ argsLen ] === "function" || typeof args[ argsLen - 1 ] === "string" ? args[ argsLen-- ] : "",
 			_names  = ( args[ argsLen-- ] || "" ).replace( /^[\s]+|[\s](?=\s)|[\s]+$/g, '' ).replace( /\s*,\s*/g, ',' ).split( " " ),
-			_context = args[ argsLen-- ] || _static["__context"] || Class["defaultContext"] || Class,
+			_context = args[ argsLen-- ] || _options["context"] || Class["defaultContext"] || Class,
 			_class = _names[ 0 ] !== "extends" && _names.shift() || "",
 			_subs = ( _names.shift() === "extends" && _names.shift() || "" ).split( "," ),
-			_extends = _static["__extends"] || _parent || _subs.shift(),
-			_mixins = _static["__implements"] || _subs,
+			_extends = _options["extends"] || _parent || _subs.shift(),
+			_mixins = _options["implements"] || _subs,
 			_implements = _mixins instanceof Array ? _mixins : [ _mixins ],
 			_implementsLen = _implements.length;
 
@@ -331,7 +332,7 @@
 		var
 			nm,
 			_name = name,
-			_context = context;
+			_context = context = (context || Class["defaultContext"] || Class);
 
 		if ( typeof _name === "string" ) {
 			_name = _name.split( "." );
@@ -617,13 +618,13 @@
 
 	            script.src = url + ( Class["imports"]["disableCaching"] ? ( url.indexOf( "?" ) > 0 ? "&" : "?" ) + ( new Date() ).getTime() : "" );
 
-	            (html.firstChild || document.getElementsByTagName('head')[0]).appendChild( script );
+	            html.firstChild.appendChild( script );
 			}
 		}
 
 		return function( scripts, onLoad, onError, scope ) {
 
-			scripts = typeof scripts === "string" ? [ scripts ] : scripts;
+			scripts = ( typeof scripts === "string" ? [ scripts ] : scripts ) || [];
 
 			var
 				i = 0,
@@ -633,8 +634,7 @@
 				length = scripts.length,
 				queueModules = {},
 				loadedScripts = isSupportPseudo_NOT ?
-					document.querySelectorAll( 'script[src]:not([data-calmjs="1"])' ) :
-					document.getElementsByTagName( 'script' );
+					document.querySelectorAll( 'script[src]:not([data-calmjs="1"])' ) : liveScripts;
 
 			for( ; script = loadedScripts[ i++ ]; ) {
 
