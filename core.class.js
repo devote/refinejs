@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.4.4
+ * core.class.js Library for JavaScript v0.4.5
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -231,15 +231,10 @@
 								if ( propType === 1 || propType === 3 ) {
 									parts.push(
 										"Public Property Let [" + nm + "](val)",
-										propType === 1 ?
+										propType = ( propType === 1 ?
 										copy["__set"] ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
-										copy[ prop ] ? "Call me.[" + prop + "].call(me,val)" : "",
-										"End Property",
-										"Public Property Set [" + nm + "](val)",
-										propType === 1 ?
-										copy["__set"] ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
-										copy[ prop ] ? "Call me.[" + prop + "].call(me,val)" : "",
-										"End Property"
+										copy[ prop ] ? "Call me.[" + prop + "].call(me,val)" : "" ) +
+										"\nEnd Property", "Public Property Set [" + nm + "](val)", propType
 									);
 								}
 							}
@@ -340,8 +335,11 @@
 			_name = _context;
 		}
 
-		if ( !_name && arguments[ 2 ] && typeof Class["autoload"] === "function" ) {
-			if ( !( _name = ( Class["autoload"].call( context, name, arguments[ 2 ] ) || classByName( name, context ) ) ) ) {
+		if ( !_name && arguments[ 2 ] ) {
+			if ( !( typeof Class["autoload"] === "function" &&
+				( _name = ( Class["autoload"].call( context, name, arguments[ 2 ] ) ||
+				classByName( name, context ) ) ) ) ) {
+
 				throw new Error( "Parent class '" + name + "' not Initialized or Undefined" );
 			}
 		}
