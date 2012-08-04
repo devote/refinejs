@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.4.5
+ * core.class.js Library for JavaScript v0.4.6
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 26-07-2012
+ * Update: 04-08-2012
  */
 
 (function( window, True, False, Null, undefined ) {
@@ -49,15 +49,18 @@
 			args = arguments,
 			argsLen = args.length - 1,
 			_struct = args[ argsLen-- ] || {},
+			_type = { "extends": 1, "implements": 1 },
 			_options = typeof args[ argsLen ] === "object" ? args[ argsLen-- ] : {},
 			_static = _options["static"] || ( _options["context"] || _options["extends"] || _options["implements"] ? {} : _options ),
 			_parent = typeof args[ argsLen ] === "function" || typeof args[ argsLen - 1 ] === "string" ? args[ argsLen-- ] : "",
 			_names  = ( args[ argsLen-- ] || "" ).replace( /^[\s]+|[\s](?=\s)|[\s]+$/g, '' ).replace( /\s*,\s*/g, ',' ).split( " " ),
 			_context = args[ argsLen-- ] || _options["context"] || Class["defaultContext"] || Class,
-			_class = _names[ 0 ] !== "extends" && _names.shift() || "",
-			_subs = ( _names.shift() === "extends" && _names.shift() || "" ).split( "," ),
-			_extends = _options["extends"] || _parent || _subs.shift(),
-			_mixins = _options["implements"] || _subs,
+			_class = !( _names[ 0 ] in _type ) && _names.shift() || "",
+			_subs = ( argsLen = _names.shift() ) in _type && ( _type = _names.shift() ) ? _type.split( "," ) : [],
+			_extend = argsLen === "extends" ? ( argsLen = _names.shift(), _subs.shift() ) : "",
+			_implement = argsLen === "implements" ? _subs.concat( ( _type = _names.shift() ) ? _type.split( "," ) : [] ) : _subs,
+			_extends = _options["extends"] || _parent || _extend,
+			_mixins = _options["implements"] || _implement,
 			_implements = _mixins instanceof Array ? _mixins : [ _mixins ],
 			_implementsLen = _implements.length;
 
