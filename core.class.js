@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.4.6
+ * core.class.js Library for JavaScript v0.4.7
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 04-08-2012
+ * Update: 07-09-2012
  */
 
 (function( window, True, False, Null, undefined ) {
@@ -44,7 +44,8 @@
 
 		var
 			first = 1,
-			accessors = [],
+			accessors = {},
+			accessorsActive = 0,
 			staticClass = False,
 			args = arguments,
 			argsLen = args.length - 1,
@@ -101,11 +102,11 @@
 				ownEach( obj, function( prop, originalProp ) {
 					if ( typeof originalProp === "function" ) {
 						copy[ prop ] = function() {
-							var p = owner.obj.parent, c = owner.obj["Class"];
+							var p = owner.obj.parent, c = owner.obj["__class__"];
 							owner.obj.parent = obj.parent;
-							owner.obj["Class"] = copy["Class"];
+							owner.obj["__class__"] = copy["__class__"];
 							var result = originalProp.apply( this === copy || this == window ? owner.obj : this, arguments );
-							owner.obj["Class"] = c;
+							owner.obj["__class__"] = c;
 							owner.obj.parent = p;
 							return result;
 						}
@@ -118,7 +119,7 @@
 				owner.obj = isParent ? owner.obj : copy;
 			}
 
-			copy["Class"] = staticConstructor;
+			copy["__class__"] = copy["__static__"] = staticConstructor;
 
 			for( var i = 0; i < _implementsLen; i++ ) {
 
@@ -144,7 +145,16 @@
 
 						if ( propType ) {
 
-							first && ( accessors[ accessors.length ] = prop );
+							if ( first ) {
+								accessors[ prop ] = val;
+								accessorsActive++;
+							}
+
+							val = copy[ prop ];
+
+							if ( hasOwnProperty.call( copy, prop ) ) {
+								delete copy[ prop ];
+							}
 
 							var
 								nm = propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop(),
@@ -157,7 +167,7 @@
 
 							if ( propType === 1 || propType === 2 ) {
 								props.get = function() {
-									return (copy[propType === 1 ? "__get" : prop] || emptyFunction).call(
+									return (propType === 1 ? copy[ "__get" ] : val || emptyFunction).call(
 										this, propType === 1 ? nm : undefined
 									)
 								}
@@ -165,7 +175,7 @@
 
 							if ( propType === 1 || propType === 3 ) {
 								props.set = function( value ) {
-									(copy[propType === 1 ? "__set" : prop] || emptyFunction).call( this,
+									(propType === 1 ? copy[ "__set" ] : val || emptyFunction).call( this,
 										propType === 1 ? nm : value, propType === 1 ? value : undefined
 									)
 								}
@@ -190,9 +200,9 @@
 							}
 						}
 
-					}, 1 );
+					}, first ? 1 : 0 );
 
-					if ( first && !( first = 0 ) && accessors.length === 0 ) {
+					if ( first && !( first = 0 ) && accessorsActive === 0 ) {
 						accessors = 0;
 					}
 
@@ -216,6 +226,10 @@
 
 							if ( propType ) {
 
+								if ( propType < 4 ) {
+									accessors[ prop ] = val;
+								}
+
 								var
 									nm = propType === 4 ? "(" + prop + ")" : ( hasAccessors = 1 ) &&
 									propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop();
@@ -227,7 +241,8 @@
 										"Call VBCorrectVal(" +
 										( propType === 1 ?
 										copy["__get"] ? "me.[__get].call(me,\"" + nm + "\")" : "" :
-										copy[ prop ] ? "me.[" + prop + "].call(me)" : "" ) + ",[" + nm + "])",
+										accessors[ prop ] ? ( propType === 4 ? "me" : "[(accessors)]" ) +
+										".[" + prop + "].call(me)" : "" ) + ",[" + nm + "])",
 										"End Property"
 									);
 								}
@@ -236,19 +251,20 @@
 										"Public Property Let [" + nm + "](val)",
 										propType = ( propType === 1 ?
 										copy["__set"] ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
-										copy[ prop ] ? "Call me.[" + prop + "].call(me,val)" : "" ) +
+										accessors[ prop ] ? "Call [(accessors)].[" + prop + "].call(me,val)" : "" ) +
 										"\nEnd Property", "Public Property Set [" + nm + "](val)", propType
 									);
 								}
 							}
 
-							// VBScript up to 60 multiple dimensions may be declared.
-							if ( names.length === 50 ) { // flush 50 items
-								parts.push( "Public [" + names.join("],[") + "]" );
-								names.length = 0;
+							if ( !propType || propType === 4 ) {
+								// VBScript up to 60 multiple dimensions may be declared.
+								if ( names.length === 50 ) { // flush 50 items
+									parts.push( "Public [" + names.join("],[") + "]" );
+									names.length = 0;
+								}
+								names[ names.length ] = prop;
 							}
-							names[ names.length ] = prop;
-							accessors[ accessors.length ] = prop;
 
 						}, 1 );
 
@@ -256,11 +272,19 @@
 
 							parts.push(
 								"Public [" + names.join("],[") + "]",
+								"Private [(accessors)]",
+								"Private Sub Class_Initialize()",
+									"Set [(accessors)]=" + staticClass + "FactoryJS()",
+								"End Sub",
 								"End Class",
 								"Function " + staticClass + "Factory()",
 								"Set " + staticClass + "Factory=New " + staticClass,
 								"End Function"
 							);
+
+							window[ staticClass + "FactoryJS" ] = function() {
+								return accessorsActive;
+							}
 
 							execVBScript( parts.join( "\n" ) );
 						} else {
@@ -273,11 +297,18 @@
 
 					if ( staticClass ) {
 
+						accessorsActive = {};
+						ownEach( accessors, function( prop, val ) {
+							accessorsActive[ prop ] = copy[ prop ];
+						});
+
 						owner.obj = window[ staticClass + "Factory" ]();
 
-						for( var i = accessors.length; first = accessors[ --i ]; ) {
-							owner.obj[ first ] = copy[ first ];
-						}
+						ownEach( copy, function( prop, val ) {
+							if ( !accessors.hasOwnProperty( prop ) ) {
+								owner.obj[ prop ] = val;
+							}
+						}, 1);
 
 						copy = owner.obj;
 					}
@@ -397,9 +428,9 @@
 
 	Class["instanceOf"] = function( object, constructor ) {
 
-		while( object && object["Class"] != Null ) {
+		while( object && object["__class__"] != Null ) {
 
-			if ( object["Class"] === constructor ) {
+			if ( object["__class__"] === constructor ) {
 				return True;
 			}
 			object = object.parent;
