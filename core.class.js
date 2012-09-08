@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.4.7
+ * core.class.js Library for JavaScript v0.4.8
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 07-09-2012
+ * Update: 08-09-2012
  */
 
 (function( window, True, False, Null, undefined ) {
@@ -141,7 +141,8 @@
 						var
 							propType = prop.indexOf( "$" ) === 0 ? 1 :
 								prop.indexOf( "get " ) === 0 ? 2 :
-								prop.indexOf( "set " ) === 0 ? 3 : 0;
+								prop.indexOf( "set " ) === 0 ? 3 :
+								val && typeof val === "object" && ( val.set || val.get ) ? 5 : 0;
 
 						if ( propType ) {
 
@@ -157,7 +158,7 @@
 							}
 
 							var
-								nm = propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop(),
+								nm = propType === 1 ? prop.substring( 1 ) : propType === 5 ? prop : prop.split( " " ).pop(),
 								props = {
 									enumerable: 1,
 									configurable: 1,
@@ -165,17 +166,17 @@
 									get: Null
 								};
 
-							if ( propType === 1 || propType === 2 ) {
+							if ( propType !== 3 ) {
 								props.get = function() {
-									return (propType === 1 ? copy[ "__get" ] : val || emptyFunction).call(
+									return ( ( propType === 1 ? copy[ "__get" ] : propType === 5 ? val.get : val ) || emptyFunction ).call(
 										this, propType === 1 ? nm : undefined
 									)
 								}
 							}
 
-							if ( propType === 1 || propType === 3 ) {
+							if ( propType & 1 ) {
 								props.set = function( value ) {
-									(propType === 1 ? copy[ "__set" ] : val || emptyFunction).call( this,
+									( ( propType === 1 ? copy[ "__set" ] : propType === 5 ? val.set : val ) || emptyFunction ).call( this,
 										propType === 1 ? nm : value, propType === 1 ? value : undefined
 									)
 								}
@@ -191,10 +192,10 @@
 								defineProperty( copy, nm, props );
 
 							} else {
-								if ( propType === 1 || propType === 2 ) {
+								if ( propType !== 3 ) {
 									copy.__defineGetter__( nm, props.get );
 								}
-								if ( propType === 1 || propType === 3 ) {
+								if ( propType & 1 ) {
 									copy.__defineSetter__( nm, props.set );
 								}
 							}
@@ -222,36 +223,41 @@
 								propType = prop.indexOf( "$" ) === 0 ? 1 :
 									prop.indexOf( "get " ) === 0 ? 2 :
 									prop.indexOf( "set " ) === 0 ? 3 :
-									prop === "toString" ? 4 : 0;
+									prop === "toString" ? 4 :
+									val && typeof val === "object" && ( val.set || val.get ) ? 5 : 0;
 
 							if ( propType ) {
 
-								if ( propType < 4 ) {
+								if ( propType !== 4 ) {
 									accessors[ prop ] = val;
 								}
 
 								var
 									nm = propType === 4 ? "(" + prop + ")" : ( hasAccessors = 1 ) &&
-									propType === 1 ? prop.substring( 1 ) : prop.split( " " ).pop();
+									propType === 1 ? prop.substring( 1 ) : propType === 5 ? prop : prop.split( " " ).pop();
 
-								if ( propType === 1 || propType === 2 || propType === 4 ) {
+								if ( propType !== 3 ) {
 									parts.push(
 										"Public " +
 										( propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
 										"Call VBCorrectVal(" +
 										( propType === 1 ?
 										copy["__get"] ? "me.[__get].call(me,\"" + nm + "\")" : "" :
-										accessors[ prop ] ? ( propType === 4 ? "me" : "[(accessors)]" ) +
-										".[" + prop + "].call(me)" : "" ) + ",[" + nm + "])",
+										accessors[ prop ] && ( propType !== 5 || accessors[ prop ].get ) ?
+										( propType === 4 ? "me" : "[(accessors)]" ) +
+										".[" + prop + "]" + ( propType === 5 ? ".get" : "" ) +
+										".call(me)" : "window.undefined" ) + ",[" + nm + "])",
 										"End Property"
 									);
 								}
-								if ( propType === 1 || propType === 3 ) {
+								if ( propType & 1 ) {
 									parts.push(
 										"Public Property Let [" + nm + "](val)",
 										propType = ( propType === 1 ?
 										copy["__set"] ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
-										accessors[ prop ] ? "Call [(accessors)].[" + prop + "].call(me,val)" : "" ) +
+										accessors[ prop ] && ( propType !== 5 || accessors[ prop ].set ) ?
+										"Call [(accessors)].[" + prop + "]" +
+										( propType === 5 ? ".set" : "" ) + ".call(me,val)" : "" ) +
 										"\nEnd Property", "Public Property Set [" + nm + "](val)", propType
 									);
 								}
