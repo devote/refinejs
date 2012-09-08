@@ -1,9 +1,9 @@
 /*
- * core.class.js Library for JavaScript v0.4.8
+ * core.class.js Library for JavaScript v0.4.9
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
- * http://spb-piksel.ru/
+ * http://spb-piksel.ru/ - https://github.com/devote
  *
  * Dual licensed under the MIT and GPL licenses:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -26,7 +26,7 @@
 		hasOwnProperty = Object.prototype.hasOwnProperty,
 		liveScripts = document.getElementsByTagName( 'script' ),
 		rootPath = ( liveScripts[ liveScripts.length - 1 ] || { src: "/" } ).src.replace( /[^\/]+$/g, "" ),
-		msie = eval("/*@cc_on (@_jscript_version+'').replace(/\\d\\./, '');@*/"),
+		msie = +(((window.eval && eval("/*@cc_on 1;@*/") && /msie (\d+)/i.exec(navigator.userAgent)) || [])[1] || 0),
 		VBInc = ( defineProperty || Object.prototype.__defineGetter__ ) && ( !msie || msie > 8 ) ? 0 : 1,
 		hasDontEnumBug = !( { toString: 1 } ).propertyIsEnumerable( 'toString' ),
 		ownEach, classByName, absoluteURL, importedModules = {},
