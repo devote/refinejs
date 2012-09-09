@@ -1,5 +1,5 @@
 /*
- * light.core.class.js Library for JavaScript v0.4.9.1
+ * light.core.class.js Library for JavaScript v0.4.9.2
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -40,40 +40,6 @@
 			'constructor'
 		];
 
-	/*
-	*  Class( context, "className", parentClass, staticObject, classStructure )
-	*  Class( context, "className", "parentClass", staticObject, classStructure )
-	*  Class( context, "className", parentClass, classStructure )
-	*  Class( context, "className", "parentClass", classStructure )
-	*  Class( context, "className", staticObject, classStructure )
-	*  Class( context, "className", classStructure )
-	*
-	*  Class( "className", parentClass, staticObject, classStructure )
-	*  Class( "className", "parentClass", staticObject, classStructure )
-	*  Class( "className", parentClass, classStructure )
-	*  Class( "className", "parentClass", classStructure )
-	*  Class( "className", staticObject, classStructure )
-	*  Class( "className", classStructure )
-	*
-	*  Class( parentClass, staticObject, classStructure )
-	*  Class( parentClass, classStructure )
-	*  Class( staticObject, classStructure )
-	*  Class( classStructure )
-	*/
-
-	/**
-	* Функция конструктор классов
-	* 
-	* @augments rest...
-	* @param1 {Object|Function} classStructure структура класса
-	* or
-	* @param1 {String} className имя класса
-	* @param2 {Object|Function} classStructure структура класса
-	* or
-	* @param1 {String} className имя класса
-	* @param2 {Object} options опции класса
-	* @param3 {Object|Function} classStructure структура класса
-	*/
 	function Class() {
 
 		var
@@ -86,7 +52,7 @@
 			_struct = args[ argsLen-- ] || {},
 			_type = { "extends": 1, "implements": 1 },
 			_options = typeof args[ argsLen ] === "object" ? args[ argsLen-- ] : {},
-			_static = _options["static"] || ( _options["context"] || _options["extends"] || _options["implements"] ? {} : _options ),
+			_static = _options["static"] || ( _options["context"] || _options["extends"] || _options["implements"] || _options["disableStatement"] ? {} : _options ),
 			_parent = typeof args[ argsLen ] === "function" || typeof args[ argsLen - 1 ] === "string" ? args[ argsLen-- ] : "",
 			_names  = ( args[ argsLen-- ] || "" ).replace( /^[\s]+|[\s](?=\s)|[\s]+$/g, '' ).replace( /\s*,\s*/g, ',' ).split( " " ),
 			_context = args[ argsLen-- ] || _options["context"] || Class["defaultContext"] || Class,
@@ -115,23 +81,24 @@
 				oParent = Null,
 				obj = new _struct(),
 				copy = obj,
-				owner = isParent ? args[ 0 ] : { obj: obj };
+				owner = isParent ? args[ 0 ] : { obj: obj },
+				disableStatement = !isParent || args[ 1 ] === undefined ? _disableStatement : args[ 1 ];
 
 			if ( _extends ) {
 				_extends = classByName( _extends, _context, staticConstructor );
 				var Fn = function(){}
-				Fn.prototype = oParent = _extends.call( False, owner );
+				Fn.prototype = oParent = _extends.call( False, owner, disableStatement );
 				copy = new Fn();
 			}
 
-			if ( !_disableStatement ) {
+			if ( !disableStatement ) {
 				obj.parent = oParent;
 			}
 
 			if ( _extends || isParent ) {
 
 				ownEach( obj, function( prop, originalProp ) {
-					if ( typeof originalProp === "function" && !_disableStatement ) {
+					if ( typeof originalProp === "function" && !disableStatement ) {
 						copy[ prop ] = function() {
 							var p = owner.obj.parent, c = owner.obj["__class__"];
 							owner.obj.parent = obj.parent;
@@ -150,7 +117,7 @@
 				owner.obj = isParent ? owner.obj : copy;
 			}
 
-			if ( !_disableStatement ) {
+			if ( !disableStatement ) {
 				copy["__class__"] = copy["__static__"] = staticConstructor;
 			}
 
@@ -261,42 +228,39 @@
 
 							if ( propType ) {
 
-								if ( propType !== 4 ) {
-									accessors[ prop ] = val;
-								}
-
 								var
-									nm = propType === 4 ? "(" + prop + ")" : ( hasAccessors = 1 ) &&
-									propType === 1 ? prop.substring( 1 ) : propType === 5 ? prop : prop.split( " " ).pop();
+									nm = propType === 4 ? prop : ( hasAccessors = 1 ) && propType === 1 ?
+									prop.substring( 1 ) : propType === 5 ? prop : prop.split( " " ).pop();
+
+								accessors[ prop ] = val;
 
 								if ( propType !== 3 ) {
 									parts.push(
 										"Public " +
 										( propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
-										"Call VBCorrectVal(" +
-										( propType === 1 ?
+										"Call VBCorrectVal(" + ( propType === 1 ?
 										copy["__get"] ? "me.[__get].call(me,\"" + nm + "\")" : "" :
 										accessors[ prop ] && ( propType !== 5 || accessors[ prop ].get ) ?
-										( propType === 4 ? "me" : "[(accessors)]" ) +
-										".[" + prop + "]" + ( propType === 5 ? ".get" : "" ) +
+										"[(accessors)].[" + prop + "]" + ( propType === 5 ? ".get" : "" ) +
 										".call(me)" : "window.undefined" ) + ",[" + nm + "])",
 										"End Property"
 									);
 								}
-								if ( propType & 1 ) {
+								if ( propType & 1 || propType === 4 ) {
 									parts.push(
 										"Public Property Let [" + nm + "](val)",
 										propType = ( propType === 1 ?
 										copy["__set"] ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
+										(propType === 4 ? "Set [(accessors)].[" + prop + "]=val" :
 										accessors[ prop ] && ( propType !== 5 || accessors[ prop ].set ) ?
 										"Call [(accessors)].[" + prop + "]" +
-										( propType === 5 ? ".set" : "" ) + ".call(me,val)" : "" ) +
+										( propType === 5 ? ".set" : "" ) + ".call(me,val)" : "" ) ) +
 										"\nEnd Property", "Public Property Set [" + nm + "](val)", propType
 									);
 								}
 							}
 
-							if ( !propType || propType === 4 ) {
+							if ( !propType ) {
 								// VBScript up to 60 multiple dimensions may be declared.
 								if ( names.length === 50 ) { // flush 50 items
 									parts.push( "Public [" + names.join("],[") + "]" );
