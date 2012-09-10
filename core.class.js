@@ -242,7 +242,7 @@
 										copy["__get"] ? "me.[__get].call(me,\"" + nm + "\")" : "" :
 										accessors[ prop ] && ( propType !== 5 || accessors[ prop ].get ) ?
 										"[(accessors)].[" + prop + "]" + ( propType === 5 ? ".get" : "" ) +
-										".call(me,a)" : "window.undefined" ) + ",[" + nm + "])",
+										".call(me)" : "window.undefined" ) + ",[" + nm + "])",
 										"End Property"
 									);
 								}
