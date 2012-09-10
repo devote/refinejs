@@ -1,5 +1,5 @@
 /*
- * light.core.class.js Library for JavaScript v0.4.9.2
+ * light.core.class.js Library for JavaScript v0.4.9.3
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 09-09-2012
+ * Update: 10-09-2012
  */
 
 (function( window, True, False, Null, undefined ) {
@@ -309,7 +309,14 @@
 
 						ownEach( copy, function( prop, val ) {
 							if ( !accessors.hasOwnProperty( prop ) ) {
-								owner.obj[ prop ] = val;
+								if ( ( !_extends || disableStatement ) && typeof val === "function" ) {
+									owner.obj[ prop ] = function() {
+										return val.apply( this === copy || this == window ? owner.obj : this, arguments );
+									}
+									owner.obj[ prop ].toString = function(){ return val.toString() }
+								} else {
+									owner.obj[ prop ] = val;
+								}
 							}
 						}, 1);
 
