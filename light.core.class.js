@@ -1,5 +1,5 @@
 /*
- * light.core.class.js Library for JavaScript v0.4.9.3
+ * light.core.class.js Library for JavaScript v0.4.9.4
  *
  * Copyright 2012, Dmitriy Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 10-09-2012
+ * Update: 13-09-2012
  */
 
 (function( window, True, False, Null, undefined ) {
@@ -274,7 +274,7 @@
 						if ( hasAccessors ) {
 
 							parts.push(
-								"Public [" + names.join("],[") + "]",
+								(names.length ? "Public [" + names.join("],[") + "]\n" : "") +
 								"Private [(accessors)]",
 								"Private Sub Class_Initialize()",
 									"Set [(accessors)]=" + staticClass + "FactoryJS()",
