@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.5.0
+ * core.class.js Library for JavaScript v0.5.1
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 19-01-2013
+ * Update: 27-01-2013
  */
 (function(window, True, False, Null, undefined) {
 
@@ -93,23 +93,30 @@
                 owner = isParent ? args[0] : {obj: obj},
                 disableStatement = !isParent || args[1] === undefined ? _disableStatement : args[1];
 
-            if (index) {
-                var Fn = function() {};
-                for( ; index--; ) {
-                    if (typeof _implements[index] === "string") {
-                        _implements[index] = classByName(_implements[index], _context, staticConstructor);
-                    }
-                    if (index === _implementsLen - 1) {
-                        Fn.prototype = oParent = _implements[index].call(False, owner, disableStatement);
-                    } else {
-                        delete Fn.prototype['constructor'];
-                        delete Fn.prototype['__construct'];
-                        ownEach(_implements[index].call(False, owner, disableStatement), function(prop, value) {
-                            Fn.prototype[prop] = value;
-                        }, 1);
-                    }
+            for( ; index--; ) {
+                if (typeof _implements[index] === "string") {
+                    _implements[index] = classByName(_implements[index], _context, staticConstructor);
                 }
-                copy = new Fn();
+
+                if (index === _implementsLen - 1) {
+                    props = function() {};
+                    props.prototype = _implements[index].call(False, owner, disableStatement);
+                } else {
+                    ownEach(_implements[index].call(False, owner, disableStatement), function(prop, value) {
+                        props.prototype[prop] = value;
+                    }, 1);
+                }
+
+                if (index === 0) {
+                    oParent = props.prototype;
+                    copy = new props();
+                } else {
+                    delete props.prototype['__construct'];
+                    delete props.prototype['constructor'];
+                    copy = new props();
+                    props = function() {};
+                    props.prototype = copy;
+                }
             }
 
             if (!disableStatement) {
