@@ -13,9 +13,9 @@
 Пример создания пустого класса:
 
 ```javascript
-Class( "Empty", {} ); // создали пустой класс Class.Empty
+Class( "Empty", {} ); // создали пустой класс Empty
 
-alert( Class.Empty ); // увидим [class Empty]
+alert( Empty ); // увидим [class Empty]
 ```
 
 Как вы уже поняли создание класса не требует огромных затрат на написание кода.
@@ -36,13 +36,13 @@ Class( "PrivateProperty", function(){
 });
 
 // Создадим экземпляр класса
-var privateTest = new Class.PrivateProperty();
+var privateTest = new PrivateProperty();
 
 // пробуем получить приватные свойства
 alert( privateTest.privateProp ); // увидим undefined
 ```
 
-Создавать классы можно не только в контексте Class но и в любом другом.
+Создавать классы можно не только в глобальном контексте но и в любом другом.
 
 Для примера я покажу несколько способов как это делается, вы можете выбрать любой приемлемый для вас способ, не ограничивая себя в чем либо.
 
@@ -54,7 +54,7 @@ Class( window, "Global", {} );
 // создание класса в текущем контексте
 var CurrentContext = Class( {} );
 // создать класс в текущем контексте но при этом он будет
-// доступен и в контексте Class c именем ClassesContext
+// доступен и в глобальном контексте c именем ClassesContext
 var CurrentContext = Class( "ClassesContext", {} );
 ```
 
@@ -179,9 +179,9 @@ Class( "Debug", function() {
 Например мы можем теперь создать экземляр этого класса и распечатать наше первое сообщение.
 
 ```javascript
-var debug = new Class.Debug();
+var debug = new Debug();
 
-debug.write( "Наш класс <var>Class.Debug</var> отлично работает!" );
+debug.write( "Наш класс <var>Debug</var> отлично работает!" );
 ```
 
 "Ничего особенного!" Скажете вы, обычное ненужное создание классов иным способом. Да, отвечу я вам, особо ничего заумного тут нет, но самые вкусности еще не были рассказаны.
@@ -229,7 +229,7 @@ Class( "Button extends Debug", function() {
 	return {
 
 		// наш конструктор для кнопки
-		constructor: function() {
+		Button: function() {
 
 			// создадим элемент для кнопки
 			button = document.createElement( "SPAN" );
@@ -352,17 +352,17 @@ Class( "Button extends Debug", function() {
 Это не единственный способ наследования, это можно делать и другим способом, например:
 
 ```javascript
-var Child = Class( Class.Debug, {} );
+var Child = Class( Debug, {} );
 ```
 
-Как мы видем класс Child стал наследником класса Class.Debug
+Как мы видем класс Child стал наследником класса Debug
 
 
 А теперь давайте опробуем нашу написанную кнопку
 
 ```javascript
 	// Создадим экземпляр кнопки
-	var button = new Class.Button();
+	var button = new Button();
 
 	// повесим событие на успешное нажатие по кнопке
 	button.click = function() {
@@ -383,40 +383,20 @@ Setter'ы/Getter'ы
 ```javascript
 Class( "SuperButton extends Button", {
 
-	// создадим свойство которое мы хотим перехватить магическим геттером/сеттером
-	// обратите внимание, такие свойства обязательно должны начинаться со знака доллар
-	// этот знак будет указывать конструктору классов о том что оно требует перехвата
-	// знак доллара конструктор классов удалит и объявит свойство с именем без этого знака
-	$text: null,
+	text: {
+		set: function( value ) {
 
-	// магический сеттер, он срабатывает для всех объявленных для перехвата свойств
-	// в первом параметре property он пришлет имя перехваченного свойства, таким образом
-	// вы сможете легко определить кого хотят заменить, вторым же параметром придет значение
-	// которое хотят установить
-	__set: function( property, value ) {
+			// пишем сообщение в браузер о том что был вызван сеттер для свойства
+			this.write( "Вызван SETTER для свойства <var>text</var> со значением <var>" + value + "</var>" );
 
-		// пишем сообщение в браузер о том что был вызван сеттер для свойства
-		this.write( "Вызван SETTER для свойства <var>" + property +
-						"</var> со значением <var>" + value + "</var>" );
-
-		// если имя свойства text
-		if ( property === "text" ) {
-
-			// то меняем текст кнопки на новое значение
+			// меняем текст кнопки на новое значение
 			this.node().innerHTML = value;
-		}
-	},
+		},
 
-	// магический геттер, он срабатывает всякий раз когда обращаются к свойству что бы
-	// получить значение, так же как и в сеттер первый параметр будет иметь имя перехваченного
-	// свойства, которое вы легко сможете обработать.
-	__get: function( property ) {
+		get: function() {
 
-		// пишем сообщение в браузер о том что был вызван геттер для свойства
-		this.write( "Вызван GETTER для свойства <var>" + property + "</var>" );
-
-		// если имя свойства text
-		if ( property === "text" ) {
+			// пишем сообщение в браузер о том что был вызван геттер для свойства
+			this.write( "Вызван GETTER для свойства <var>text</var>" );
 
 			// возвращаем текущее значение нашего свойства
 			return this.node().innerHTML;
@@ -441,7 +421,7 @@ Class( "SuperButton extends Button", {
 
 ```javascript
 // создадим экземпляр нашей супер кнопки
-var superButton = new Class.SuperButton();
+var superButton = new SuperButton();
 
 // испробуем геттер, просто получим текущее значение имени кнопки
 // обратите внимание на сообщение в окне браузера
@@ -465,7 +445,7 @@ Class( window, "Global", {
 	staticProperty: 1
 }, {
 	dinamicProperty: function() {
-		alert( this.__static__.staticProperty );
+		alert( Global.staticProperty );
 	}
 });
 // создание класса в текущем контексте
@@ -473,22 +453,19 @@ var CurrentContext = Class({
 	staticProperty: 1
 }, {
 	dinamicProperty: function() {
-		alert( this.__static__.staticProperty );
+		alert( CurrentContext.staticProperty );
 	}
 });
 // создать класс в текущем контексте но при этом он будет
-// доступен и в контексте Class c именем ClassesContext
+// доступен и в глобальном контексте c именем ClassesContext
 var CurrentContext = Class( "ClassesContext", {
 	staticProperty: 1
 }, {
 	dinamicProperty: function() {
-		alert( this.__static__.staticProperty );
+		alert( ClassesContext.staticProperty );
 	}
 });
 ```
-
-Обратится к статическим свойствам из самого класса посредством обращения к this.\_\_static\_\_
-
 
 Напоследок хочу обратить внимание на то, что при обращении к родительским методам вам не нужно указывать явно контекст. Я думаю вы заметили что я вызываю конструктор класса Debug из нашего класса кнопки, обычным вызовом this.parent.constructor() при этом класс debug будет уже иметь контекст последнего потомка, то-есть инициатора классов. Вам не нужно вызывать родительские методы через всем известные call, apply и т.д. Достаточно просто вызвать this.parent.parentMethod( args ); и родственник будет работать с контекстом потомка.
 
@@ -502,5 +479,5 @@ var CurrentContext = Class( "ClassesContext", {
 Так же хочу добавить что нативный instanceof не будет реагировать корректно на эти классы поэтому для этих случаев я добавил метод Class.instanceOf для проверки принадлежности экземпляра к нужному нам классу в нашем случаем вызов:
 
 ```javascript
-alert( Class.instanceOf( superButton, Class.Debug ) ); // отобразит TRUE
+alert( Class.instanceOf( superButton, Debug ) ); // отобразит TRUE
 ```
