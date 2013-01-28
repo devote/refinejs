@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.5.1
+ * core.class.js Library for JavaScript v0.5.2
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 27-01-2013
+ * Update: 29-01-2013
  */
 (function(window, True, False, Null, undefined) {
 
@@ -89,34 +89,26 @@
                 args = arguments,
                 oParent = Null,
                 obj = new _struct(),
-                copy = obj,
+                proto = args[2] || Null,
+                copy = proto || obj,
                 owner = isParent ? args[0] : {obj: obj},
                 disableStatement = !isParent || args[1] === undefined ? _disableStatement : args[1];
 
             for( ; index--; ) {
+
                 if (typeof _implements[index] === "string") {
                     _implements[index] = classByName(_implements[index], _context, staticConstructor);
                 }
 
-                if (index === _implementsLen - 1) {
-                    props = function() {};
-                    props.prototype = _implements[index].call(False, owner, disableStatement);
-                } else {
-                    ownEach(_implements[index].call(False, owner, disableStatement), function(prop, value) {
-                        props.prototype[prop] = value;
-                    }, 1);
-                }
+                props = function() {};
+                props.prototype = oParent = _implements[index].call(False, owner, disableStatement, proto);
 
-                if (index === 0) {
-                    oParent = props.prototype;
-                    copy = new props();
-                } else {
+                if (index > 0) {
                     delete props.prototype['__construct'];
                     delete props.prototype['constructor'];
-                    copy = new props();
-                    props = function() {};
-                    props.prototype = copy;
                 }
+
+                copy = proto = new props();
             }
 
             if (!disableStatement) {
