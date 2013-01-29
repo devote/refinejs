@@ -1,7 +1,7 @@
 /*
- * simple.core.class.js Cross-Browser Accessors for JavaScript v0.0.1
+ * simple.core.class.js Cross-Browser Accessors for JavaScript v0.0.2
  *
- * Copyright 2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
+ * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
  * http://spb-piksel.ru/ - https://github.com/devote
  *
@@ -9,9 +9,8 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 19-01-2013
+ * Update: 29-01-2013
  */
-
 (function(window, True, False, Null, undefined) {
 
     "use strict";
@@ -90,8 +89,12 @@
                             var props = {
                                 enumerable: 1,
                                 configurable: 1,
-                                set: val.set || emptyFunction,
-                                get: val.get || emptyFunction
+                                set: function(value){
+                                    (val.set || emptyFunction).call(this, value, val);
+                                },
+                                get: function(){
+                                    return (val.get || emptyFunction).call(this, val);
+                                }
                             };
 
                             if (defineProperty) {
@@ -134,16 +137,16 @@
                                     "Public " + (propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
                                     "Call VBCorrectVal(" + (accessors[prop] && (propType !== 5 ||
                                     accessors[prop].get) ? "[(accessors)].[" + prop + "]" +
-                                    (propType === 5 ? ".get" : "") + ".call(me)" : "window.undefined" ) +
-                                    ",[" + nm + "])", "End Property"
+                                    (propType === 5 ? ".get" : "") + ".call(me,[(accessors)].[" + prop + "])" :
+                                    "window.undefined" ) + ",[" + nm + "])", "End Property"
                                 );
 
                                 parts.push(
                                     "Public Property Let [" + nm + "](val)",
                                     propType = (propType === 4 ? "Set [(accessors)].[" + prop + "]=val" :
                                     accessors[ prop ] && (propType !== 5 || accessors[ prop ].set) ?
-                                    "Call [(accessors)].[" + prop + "]" +
-                                    (propType === 5 ? ".set" : "") + ".call(me,val)" : "") +
+                                    "Call [(accessors)].[" + prop + "]" + (propType === 5 ? ".set" : "") +
+                                    ".call(me,val,[(accessors)].[" + prop + "])" : "") +
                                     "\nEnd Property", "Public Property Set [" + nm + "](val)", propType
                                 );
                             }

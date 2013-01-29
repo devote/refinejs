@@ -1,5 +1,5 @@
 /*
- * light.core.class.js Library for JavaScript v0.5.2
+ * light.core.class.js Library for JavaScript v0.5.3
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -192,7 +192,7 @@
                             if (propType !== 3) {
                                 props.get = function() {
                                     return ((propType === 1 ? copy["__get"] : propType === 5 ? val.get : val) || emptyFunction(nm, 0)).call(
-                                        this, propType === 1 ? nm : undefined
+                                        this, propType === 1 ? nm : val
                                     )
                                 }
                             }
@@ -200,7 +200,7 @@
                             if (propType & 1) {
                                 props.set = function(value) {
                                     ((propType === 1 ? copy["__set"] : propType === 5 ? val.set : val) || emptyFunction(nm, 1)).call(
-                                        this, propType === 1 ? nm : value, propType === 1 ? value : undefined
+                                        this, propType === 1 ? nm : value, propType === 1 ? value : val
                                     )
                                 }
                             }
@@ -264,8 +264,8 @@
                                         copy["__get"] ? "me.[__get].call(me,\"" + nm + "\")" : "" :
                                         accessors[prop] && ( propType !== 5 || accessors[prop].get) ?
                                         "[(accessors)].[" + prop + "]" + (propType === 5 ? ".get" : "") +
-                                        ".call(me)" : "window.undefined" ) + ",[" + nm + "])",
-                                        "End Property"
+                                        ".call(me,[(accessors)].[" + prop + "])" : "window.undefined" ) +
+                                        ",[" + nm + "])", "End Property"
                                     );
                                 }
                                 if (propType & 1 || propType === 4) {
@@ -275,8 +275,8 @@
                                         copy["__set"] ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
                                         (propType === 4 ? "Set [(accessors)].[" + prop + "]=val" :
                                         accessors[ prop ] && (propType !== 5 || accessors[ prop ].set) ?
-                                        "Call [(accessors)].[" + prop + "]" +
-                                        (propType === 5 ? ".set" : "") + ".call(me,val)" : "")) +
+                                        "Call [(accessors)].[" + prop + "]" + (propType === 5 ? ".set" : "") +
+                                        ".call(me,val,[(accessors)].[" + prop + "])" : "")) +
                                         "\nEnd Property", "Public Property Set [" + nm + "](val)", propType
                                     );
                                 }
