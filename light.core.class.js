@@ -1,5 +1,5 @@
 /*
- * light.core.class.js Library for JavaScript v0.5.3
+ * light.core.class.js Library for JavaScript v0.5.4
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -100,8 +100,8 @@
                 props.prototype = oParent = _implements[index].call(False, owner, disableStatement, proto);
 
                 if (index > 0) {
-                    delete props.prototype['__construct'];
-                    delete props.prototype['constructor'];
+                    // cannot auto execute constructor in implements
+                    props.prototype['constructor'] = function(){};
                 }
 
                 copy = proto = new props();
@@ -353,8 +353,6 @@
             } : function() {
                 if (constructorName in copy) {
                     copy[constructorName].apply(copy, args);
-                } else if ("__construct" in copy) {
-                    copy["__construct"].apply(copy, args);
                 } else if (copy.constructor && copy.constructor !== Object.prototype.constructor) {
                     copy.constructor.apply(copy, args);
                 }
