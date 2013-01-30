@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.5.5
+ * core.class.js Library for JavaScript v0.5.5.1
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -96,7 +96,8 @@
                 proto = args[2] || Null,
                 copy = proto || obj,
                 owner = isParent ? args[0] : {obj: obj},
-                disableStatement = !isParent || args[1] === undefined ? _disableStatement : args[1];
+                disableStatement = !isParent || args[1] === undefined ||
+                    _disableStatement !== undefined ? _disableStatement : args[1];
 
             for( ; index--; ) {
 
