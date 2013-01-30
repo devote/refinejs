@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.5.5.1
+ * core.class.js Library for JavaScript v0.5.5.2
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,13 +9,14 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 30-01-2013
+ * Update: 31-01-2013
  */
 (function(window, True, False, Null, undefined) {
 
     "use strict";
 
     var
+        array = window["Array"],
         document = window.document,
         html = document.documentElement,
         libID = (new Date()).getTime(),
@@ -50,32 +51,24 @@
             accessors = {},
             accessorsActive = 0,
             staticClass = False,
-            props = arguments,
             constructorName,
-            argsLen = props.length - 1,
-            _struct = props[argsLen--] || {},
-            _type = {"extends": 1, "implements": 1},
-            _options = typeof props[argsLen] === "object" && props[argsLen] &&
-                !(props[argsLen] instanceof Array) ? props[argsLen--] : {},
-            _static = _options["statics"] || (_options["context"] || _options["extends"] ||
-                _options["implements"] || _options["compact"] ? {} : _options),
-            _parent = typeof props[argsLen] === "function" || typeof props[argsLen-1] === "string" ||
-                (props[argsLen] && props[argsLen] instanceof Array) ? props[argsLen--] : "",
-            _names = ((props[argsLen--] || "") + (_parent && typeof _parent == "string" ? " extends " + _parent : ""))
-                .replace(/^[\s]+|[\s](?=\s)|[\s]+$/g, '').replace(/\s*,\s*/g, ',').split(" "),
-            _context = props[argsLen--] || _options["context"] || Class["defaultContext"] || window,
-            _class = !( _names[0] in _type) && _names.shift() || "",
-            _subs = (argsLen = _names.shift()) in _type && (_type = _names.shift()) ?
-                _type.split(",") : _parent instanceof Array ? _parent : [],
-            _extend = argsLen === "extends" ? (argsLen = _names.shift(), _subs.shift()) : "",
-            _implement = argsLen === "implements" ?
-                _subs.concat((_type = _names.shift()) ? _type.split(",") : []) : _subs,
-            _extends = _options["extends"] || _extend || typeof _parent === "string" && _parent,
-            _mixins = _options["implements"] || _implement,
-            _implements = _mixins instanceof Array ?
-                (_extends && _mixins.unshift(_extends), _mixins) : _extends && [_extends, _mixins] || [_mixins],
-            _implementsLen = _implements.length,
-            _disableStatement = _options["compact"];
+            argv = arguments,
+            argn = argv.length - 1,
+            _struct = argv[argn--] || {},
+            o = !argv[argn] || argv[argn] instanceof array || typeof argv[argn] !== "object" ? {} : argv[argn--],
+            _extends = o['extends'], _compact = o['compact'], _mixins = o['implements'], _ns = o['context'],
+            _static = o['statics'] || (_ns || _extends || _mixins || _compact ? {} : o),
+            _p2 = typeof argv[argn] === "function" ? [argv[argn--]] : argv[argn] instanceof array ? argv[argn--] :
+                typeof argv[argn-1] === "string" && (""+argv[argn--]).replace(/(^|\s)(extends|implements)(\s|$)/g, ',')
+                        .replace(/^[\s,]+|\s(?=\s)|[\s,]+$/g, '').replace(/\s*,\s*/g, ',').split(",") || [],
+            _names = typeof argv[argn] === "string" && argv[argn--].split(/extends|implements|,/g) || [],
+            _context = argv[argn--] || _ns || Class["defaultContext"] || window,
+            _class = (_names.shift() || "").replace(/^\s+|\s+$/g, '' ),
+            _p3 = _extends instanceof array ? _extends : _extends ? [_extends] : [],
+            _p4 = _mixins instanceof array ? _mixins : _mixins ? [_mixins] : [],
+            _p1 = (o = _names.join(",").replace(/^[\s,]+|[\s,]+$/g, '').replace(/\s*,\s*/g, ',')) ? o.split(",") : [],
+            _implements = _p1.concat.apply(_p1, _p2.concat.apply(_p2, _p3.concat.apply(_p3, _p4)) ),
+            _implementsLen = _implements.length;
 
         if (typeof _struct !== "function") {
             var originalStruct = _struct;
@@ -96,8 +89,7 @@
                 proto = args[2] || Null,
                 copy = proto || obj,
                 owner = isParent ? args[0] : {obj: obj},
-                disableStatement = !isParent || args[1] === undefined ||
-                    _disableStatement !== undefined ? _disableStatement : args[1];
+                disableStatement = !isParent || args[1] === undefined || _compact !== undefined ? _compact : args[1];
 
             for( ; index--; ) {
 
@@ -105,15 +97,15 @@
                     _implements[index] = classByName(_implements[index], _context, staticConstructor);
                 }
 
-                props = function() {};
-                props.prototype = oParent = _implements[index].call(False, owner, disableStatement, proto);
+                argv = function() {};
+                argv.prototype = oParent = _implements[index].call(False, owner, disableStatement, proto);
 
                 if (index > 0 && !disableStatement) {
                     // cannot auto execute constructor in implements
-                    props.prototype['constructor'] = function(){};
+                    argv.prototype['constructor'] = function(){};
                 }
 
-                copy = proto = new props();
+                copy = proto = new argv();
             }
 
             if (!disableStatement) {
@@ -122,7 +114,7 @@
 
             if (_implementsLen || isParent) {
 
-                props = function(o, prop, originalProp) {
+                argv = function(o, prop, originalProp) {
                     o[prop] = function() {
                         var p = owner.obj["parent"], c = owner.obj["__class__"];
                         owner.obj["parent"] = obj["parent"];
@@ -139,14 +131,14 @@
 
                 ownEach(obj, function(prop, originalProp) {
                     if (typeof originalProp === "function" && !disableStatement) {
-                        props(copy, prop, originalProp);
+                        argv(copy, prop, originalProp);
                     } else {
                         if (!disableStatement && originalProp && typeof originalProp === "object") {
                             if ("set" in originalProp && typeof originalProp.set === "function") {
-                                props(originalProp, 'set', originalProp.set);
+                                argv(originalProp, 'set', originalProp.set);
                             }
                             if ("get" in originalProp && typeof originalProp.get === "function") {
-                                props(originalProp, 'get', originalProp.get);
+                                argv(originalProp, 'get', originalProp.get);
                             }
                         }
                         copy[prop] = originalProp;
@@ -383,18 +375,18 @@
 
             var context = _context;
 
-            props = (_names = _class.split(".")).shift();
+            argv = (_names = _class.split(".")).shift();
 
             do {
                 if (_names.length === 0) {
-                    context[constructorName = props] = staticConstructor;
+                    context[constructorName = argv] = staticConstructor;
                 } else {
-                    if (!(props in context)) {
-                        context[props] = {};
+                    if (!(argv in context)) {
+                        context[argv] = {};
                     }
-                    context = context[props];
+                    context = context[argv];
                 }
-            } while(props = _names.shift());
+            } while(argv = _names.shift());
         }
 
         return staticConstructor;
