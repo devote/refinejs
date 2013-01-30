@@ -53,7 +53,7 @@
             _struct = argv[argn--] || {},
             o = !argv[argn] || argv[argn] instanceof array || typeof argv[argn] !== "object" ? {} : argv[argn--],
             _extends = o['extends'], _compact = o['compact'], _mixins = o['implements'], _ns = o['context'],
-            _static = o['statics'] || (_ns || _extends || _mixins || _compact ? {} : o),
+            _static = o['statics'] || (_ns || _extends || _mixins || _compact !== undefined ? {} : o),
             _p2 = typeof argv[argn] === "function" ? [argv[argn--]] : argv[argn] instanceof array ? argv[argn--] :
                 typeof argv[argn-1] === "string" && (""+argv[argn--]).replace(/(^|\s)(extends|implements)(\s|$)/g, ',')
                         .replace(/^[\s,]+|\s(?=\s)|[\s,]+$/g, '').replace(/\s*,\s*/g, ',').split(",") || [],
