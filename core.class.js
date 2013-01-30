@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.5.4
+ * core.class.js Library for JavaScript v0.5.5
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 29-01-2013
+ * Update: 30-01-2013
  */
 (function(window, True, False, Null, undefined) {
 
@@ -55,23 +55,27 @@
             argsLen = props.length - 1,
             _struct = props[argsLen--] || {},
             _type = {"extends": 1, "implements": 1},
-            _options = typeof props[argsLen] === "object" && props[argsLen] ? props[argsLen--] : {},
+            _options = typeof props[argsLen] === "object" && props[argsLen] &&
+                !(props[argsLen] instanceof Array) ? props[argsLen--] : {},
             _static = _options["statics"] || (_options["context"] || _options["extends"] ||
-                _options["implements"] || _options["disableStatement"] ? {} : _options),
-            _parent = typeof props[argsLen] === "function" || typeof props[argsLen-1] === "string" ? props[argsLen--] : "",
-            _names = ((props[argsLen--] || "") + (typeof _parent == "string" ? " extends " + _parent : ""))
+                _options["implements"] || _options["compact"] ? {} : _options),
+            _parent = typeof props[argsLen] === "function" || typeof props[argsLen-1] === "string" ||
+                (props[argsLen] && props[argsLen] instanceof Array) ? props[argsLen--] : "",
+            _names = ((props[argsLen--] || "") + (_parent && typeof _parent == "string" ? " extends " + _parent : ""))
                 .replace(/^[\s]+|[\s](?=\s)|[\s]+$/g, '').replace(/\s*,\s*/g, ',').split(" "),
             _context = props[argsLen--] || _options["context"] || Class["defaultContext"] || window,
             _class = !( _names[0] in _type) && _names.shift() || "",
-            _subs = (argsLen = _names.shift()) in _type && (_type = _names.shift()) ? _type.split(",") : [],
+            _subs = (argsLen = _names.shift()) in _type && (_type = _names.shift()) ?
+                _type.split(",") : _parent instanceof Array ? _parent : [],
             _extend = argsLen === "extends" ? (argsLen = _names.shift(), _subs.shift()) : "",
-            _implement = argsLen === "implements" ? _subs.concat((_type = _names.shift()) ? _type.split(",") : []) : _subs,
-            _extends = _options["extends"] || _extend || _parent,
+            _implement = argsLen === "implements" ?
+                _subs.concat((_type = _names.shift()) ? _type.split(",") : []) : _subs,
+            _extends = _options["extends"] || _extend || typeof _parent === "string" && _parent,
             _mixins = _options["implements"] || _implement,
             _implements = _mixins instanceof Array ?
                 (_extends && _mixins.unshift(_extends), _mixins) : _extends && [_extends, _mixins] || [_mixins],
             _implementsLen = _implements.length,
-            _disableStatement = _options["disableStatement"];
+            _disableStatement = _options["compact"];
 
         if (typeof _struct !== "function") {
             var originalStruct = _struct;
@@ -103,7 +107,7 @@
                 props = function() {};
                 props.prototype = oParent = _implements[index].call(False, owner, disableStatement, proto);
 
-                if (index > 0) {
+                if (index > 0 && !disableStatement) {
                     // cannot auto execute constructor in implements
                     props.prototype['constructor'] = function(){};
                 }
@@ -115,7 +119,7 @@
                 obj["parent"] = oParent;
             }
 
-            if (_extends || isParent) {
+            if (_implementsLen || isParent) {
 
                 props = function(o, prop, originalProp) {
                     o[prop] = function() {
@@ -151,11 +155,11 @@
                 owner.obj = isParent ? owner.obj : copy;
             }
 
-            if (isParent && constructorName in copy) {
-                copy["constructor"] = copy[constructorName];
-            }
-
             if (!disableStatement) {
+                if (isParent && constructorName in copy) {
+                    copy["constructor"] = copy[constructorName];
+                }
+
                 copy["__class__"] = staticConstructor;
             }
 
@@ -334,7 +338,7 @@
 
                         ownEach(copy, function(prop, val) {
                             if (!accessors.hasOwnProperty(prop)) {
-                                if ((!_extends || disableStatement) && typeof val === "function") {
+                                if ((!_implementsLen || disableStatement) && typeof val === "function") {
                                     owner.obj[prop] = function() {
                                         return val.apply(this === copy || this == window ? owner.obj : this, arguments);
                                     };
