@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.5.5.2
+ * core.class.js Library for JavaScript v0.5.5.3
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,14 +9,14 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 31-01-2013
+ * Update: 01-02-2013
  */
 (function(window, True, False, Null, undefined) {
 
     "use strict";
 
     var
-        array = window["Array"],
+        Array = window["Array"],
         document = window.document,
         html = document.documentElement,
         libID = (new Date()).getTime(),
@@ -55,17 +55,18 @@
             argv = arguments,
             argn = argv.length - 1,
             _struct = argv[argn--] || {},
-            o = !argv[argn] || argv[argn] instanceof array || typeof argv[argn] !== "object" ? {} : argv[argn--],
+            returnInstance = this instanceof Class,
+            o = !argv[argn] || argv[argn] instanceof Array || typeof argv[argn] !== "object" ? {} : argv[argn--],
             _extends = o['extends'], _compact = o['compact'], _mixins = o['implements'], _ns = o['context'],
             _static = o['statics'] || (_ns || _extends || _mixins || _compact !== undefined ? {} : o),
-            _p2 = typeof argv[argn] === "function" ? [argv[argn--]] : argv[argn] instanceof array ? argv[argn--] :
+            _p2 = typeof argv[argn] === "function" ? [argv[argn--]] : argv[argn] instanceof Array ? argv[argn--] :
                 typeof argv[argn-1] === "string" && (""+argv[argn--]).replace(/(^|\s)(extends|implements)(\s|$)/g, ',')
                         .replace(/^[\s,]+|\s(?=\s)|[\s,]+$/g, '').replace(/\s*,\s*/g, ',').split(",") || [],
             _names = typeof argv[argn] === "string" && argv[argn--].split(/extends|implements|,/g) || [],
             _context = argv[argn--] || _ns || Class["defaultContext"] || window,
             _class = (_names.shift() || "").replace(/^\s+|\s+$/g, '' ),
-            _p3 = _extends instanceof array ? _extends : _extends ? [_extends] : [],
-            _p4 = _mixins instanceof array ? _mixins : _mixins ? [_mixins] : [],
+            _p3 = _extends instanceof Array ? _extends : _extends ? [_extends] : [],
+            _p4 = _mixins instanceof Array ? _mixins : _mixins ? [_mixins] : [],
             _p1 = (o = _names.join(",").replace(/^[\s,]+|[\s,]+$/g, '').replace(/\s*,\s*/g, ',')) ? o.split(",") : [],
             _implements = _p1.concat.apply(_p1, _p2.concat.apply(_p2, _p3.concat.apply(_p3, _p4)) ),
             _implementsLen = _implements.length;
@@ -198,7 +199,7 @@
                                 }
                             }
 
-                            if (propType & 1) {
+                            if (propType !== 2) {
                                 props.set = function(value) {
                                     ((propType === 1 ? copy["__set"] : propType === 5 ? val.set : val) || emptyFunction(nm, 1)).call(
                                         this, propType === 1 ? nm : value, propType === 1 ? value : val
@@ -219,7 +220,7 @@
                                 if (propType !== 3) {
                                     copy.__defineGetter__(nm, props.get);
                                 }
-                                if (propType & 1) {
+                                if (propType !== 2) {
                                     copy.__defineSetter__(nm, props.set);
                                 }
                             }
@@ -269,7 +270,7 @@
                                         ",[" + nm + "])", "End Property"
                                     );
                                 }
-                                if (propType & 1 || propType === 4) {
+                                if (propType !== 2) {
                                     parts.push(
                                         "Public Property Let [" + nm + "](val)",
                                         propType = (propType === 1 ?
@@ -389,7 +390,7 @@
             } while(argv = _names.shift());
         }
 
-        return staticConstructor;
+        return returnInstance ? new staticConstructor : staticConstructor;
     }
 
     /**

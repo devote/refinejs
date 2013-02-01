@@ -1,5 +1,5 @@
 /*
- * simple.core.class.js Cross-Browser Accessors for JavaScript v0.0.2
+ * simple.core.class.js Cross-Browser Accessors for JavaScript v0.5.5.3
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 29-01-2013
+ * Update: 01-02-2013
  */
 (function(window, True, False, Null, undefined) {
 
@@ -47,6 +47,7 @@
             props = arguments,
             args = props.length - 1,
             _struct = props[args--] || {},
+            returnInstance = this instanceof Class,
             _static = typeof props[args] === "object" && props[args] ? props[args--] : {},
             _class = (props[args--] || "").replace(/^[\s]+|[\s](?=\s)|[\s]+$/g, ''),
             _context = props[args--] || window;
@@ -250,7 +251,7 @@
             } while(props = args.shift());
         }
 
-        return staticConstructor;
+        return returnInstance ? new staticConstructor : staticConstructor;
     }
 
     function ownEach(obj, callback, all) {
