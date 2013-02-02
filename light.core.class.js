@@ -1,5 +1,5 @@
 /*
- * light.core.class.js Library for JavaScript v0.5.5.3
+ * light.core.class.js Library for JavaScript v0.5.6
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 01-02-2013
+ * Update: 03-02-2013
  */
 (function(window, True, False, Null, undefined) {
 
@@ -25,7 +25,8 @@
         msie = +(((window["eval"] && eval("/*@cc_on 1;@*/") && /msie (\d+)/i.exec(navigator.userAgent)) || [])[1] || 0),
         VBInc = (defineProperty || Object.prototype.__defineGetter__) && (!msie || msie > 8) ? 0 : 1,
         hasDontEnumBug = !({toString: 1}).propertyIsEnumerable('toString'),
-        emptyFunction = function(prop, type) {
+        emptyFunction = function(){},
+        errorFunction = function(prop, type) {
             return function() {
                 throw new Error("'" + prop + "' property is " + (type ? "read" : "write") + "-only");
             }
@@ -70,7 +71,10 @@
         if (typeof _struct !== "function") {
             var originalStruct = _struct;
             _struct = function() {
-                return originalStruct;
+                emptyFunction.prototype = originalStruct.constructor.prototype;
+                argv = new emptyFunction();
+                ownEach(originalStruct, function(prop, val){argv[prop] = val});
+                return argv;
             }
         }
 
@@ -94,15 +98,14 @@
                     _implements[index] = classByName(_implements[index], _context, staticConstructor);
                 }
 
-                argv = function() {};
-                argv.prototype = oParent = _implements[index].call(False, owner, disableStatement, proto);
+                emptyFunction.prototype = oParent = _implements[index].call(False, owner, disableStatement, proto);
 
                 if (index > 0 && !disableStatement) {
                     // cannot auto execute constructor in implements
-                    argv.prototype['constructor'] = function(){};
+                    oParent['constructor'] = function(){};
                 }
 
-                copy = proto = new argv();
+                copy = proto = new emptyFunction;
             }
 
             if (!disableStatement) {
@@ -160,7 +163,7 @@
                     ownEach(first ? copy : accessors, function(prop, val) {
 
                         var
-                            propType = prop.indexOf("$") === 0 ? 1 :
+                            propType = !first ? val : prop.indexOf("$") === 0 ? 1 :
                                 prop.indexOf("get ") === 0 ? 2 :
                                 prop.indexOf("set ") === 0 ? 3 :
                                 val && typeof val === "object" && (val.set || val.get) ? 5 : 0;
@@ -168,11 +171,16 @@
                         if (propType) {
 
                             if (first) {
-                                accessors[prop] = val;
+                                accessors[prop] = propType;
                                 accessorsActive++;
                             }
 
                             val = copy[prop];
+
+                            if (propType === 5) {
+                                emptyFunction.prototype = val;
+                                val = new emptyFunction;
+                            }
 
                             if (hasOwnProperty.call(copy, prop)) {
                                 delete copy[prop];
@@ -189,7 +197,7 @@
 
                             if (propType !== 3) {
                                 props.get = function() {
-                                    return ((propType === 1 ? copy["__get"] : propType === 5 ? val.get : val) || emptyFunction(nm, 0)).call(
+                                    return ((propType === 1 ? copy["__get"] : propType === 5 ? val.get : val) || errorFunction(nm, 0)).call(
                                         this, propType === 1 ? nm : val
                                     )
                                 }
@@ -197,7 +205,7 @@
 
                             if (propType !== 2) {
                                 props.set = function(value) {
-                                    ((propType === 1 ? copy["__set"] : propType === 5 ? val.set : val) || emptyFunction(nm, 1)).call(
+                                    ((propType === 1 ? copy["__set"] : propType === 5 ? val.set : val) || errorFunction(nm, 1)).call(
                                         this, propType === 1 ? nm : value, propType === 1 ? value : val
                                     )
                                 }
@@ -207,8 +215,8 @@
 
                                 var descr = Object.getOwnPropertyDescriptor(copy, nm);
 
-                                props.get = props.get || descr && descr.get || emptyFunction(nm, 0);
-                                props.set = props.set || descr && descr.set || emptyFunction(nm, 1);
+                                props.get = props.get || descr && descr.get || errorFunction(nm, 0);
+                                props.set = props.set || descr && descr.set || errorFunction(nm, 1);
 
                                 defineProperty(copy, nm, props);
 
@@ -253,14 +261,14 @@
                                     nm = propType === 4 ? prop : (hasAccessors = 1) && propType === 1 ?
                                         prop.substring(1) : propType === 5 ? prop : prop.split(" ").pop();
 
-                                accessors[prop] = val;
+                                accessors[prop] = propType;
 
                                 if (propType !== 3) {
                                     parts.push(
                                         "Public " + (propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
                                         "Call VBCorrectVal(" + ( propType === 1 ?
                                         copy["__get"] ? "me.[__get].call(me,\"" + nm + "\")" : "" :
-                                        accessors[prop] && ( propType !== 5 || accessors[prop].get) ?
+                                        val && ( propType !== 5 || val.get) ?
                                         "[(accessors)].[" + prop + "]" + (propType === 5 ? ".get" : "") +
                                         ".call(me,[(accessors)].[" + prop + "])" : "window.undefined" ) +
                                         ",[" + nm + "])", "End Property"
@@ -272,7 +280,7 @@
                                         propType = (propType === 1 ?
                                         copy["__set"] ? "Call me.[__set].call(me,\"" + nm + "\",val)" : "" :
                                         (propType === 4 ? "Set [(accessors)].[" + prop + "]=val" :
-                                        accessors[ prop ] && (propType !== 5 || accessors[ prop ].set) ?
+                                        val && (propType !== 5 || val.set) ?
                                         "Call [(accessors)].[" + prop + "]" + (propType === 5 ? ".set" : "") +
                                         ".call(me,val,[(accessors)].[" + prop + "])" : "")) +
                                         "\nEnd Property", "Public Property Set [" + nm + "](val)", propType
@@ -320,9 +328,6 @@
                     if (staticClass) {
 
                         accessorsActive = {};
-                        ownEach(accessors, function(prop, val) {
-                            accessorsActive[prop] = copy[prop];
-                        });
 
                         owner.obj = window[staticClass + "Factory"]();
 
@@ -337,6 +342,13 @@
                                     }
                                 } else {
                                     owner.obj[prop] = val;
+                                }
+                            } else {
+                                if (accessors[prop] === 5) {
+                                    emptyFunction.prototype = copy[prop];
+                                    accessorsActive[prop] = new emptyFunction;
+                                } else {
+                                    accessorsActive[prop] = copy[prop];
                                 }
                             }
                         }, 1);

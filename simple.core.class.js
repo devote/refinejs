@@ -1,5 +1,5 @@
 /*
- * simple.core.class.js Cross-Browser Accessors for JavaScript v0.5.5.3
+ * simple.core.class.js Cross-Browser Accessors for JavaScript v0.5.6
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 01-02-2013
+ * Update: 03-02-2013
  */
 (function(window, True, False, Null, undefined) {
 
@@ -55,7 +55,10 @@
         if (typeof _struct !== "function") {
             var originalStruct = _struct;
             _struct = function() {
-                return originalStruct;
+                emptyFunction.prototype = originalStruct.constructor.prototype;
+                props = new emptyFunction();
+                ownEach(originalStruct, function(prop, val){props[prop] = val});
+                return props;
             }
         }
 
@@ -81,7 +84,8 @@
                                 accessorsActive++;
                             }
 
-                            val = copy[prop];
+                            emptyFunction.prototype = copy[prop];
+                            val = new emptyFunction;
 
                             if (hasOwnProperty.call(copy, prop)) {
                                 delete copy[prop];
@@ -132,12 +136,12 @@
 
                                 var nm = propType === 4 ? prop : (hasAccessors = 1) && prop;
 
-                                accessors[prop] = val;
+                                accessors[prop] = propType;
 
                                 parts.push(
                                     "Public " + (propType === 4 ? "Default " : "" ) + "Property Get [" + nm + "]",
-                                    "Call VBCorrectVal(" + (accessors[prop] && (propType !== 5 ||
-                                    accessors[prop].get) ? "[(accessors)].[" + prop + "]" +
+                                    "Call VBCorrectVal(" + (val && (propType !== 5 ||
+                                    val.get) ? "[(accessors)].[" + prop + "]" +
                                     (propType === 5 ? ".get" : "") + ".call(me,[(accessors)].[" + prop + "])" :
                                     "window.undefined" ) + ",[" + nm + "])", "End Property"
                                 );
@@ -145,7 +149,7 @@
                                 parts.push(
                                     "Public Property Let [" + nm + "](val)",
                                     propType = (propType === 4 ? "Set [(accessors)].[" + prop + "]=val" :
-                                    accessors[ prop ] && (propType !== 5 || accessors[ prop ].set) ?
+                                    val && (propType !== 5 || val.set) ?
                                     "Call [(accessors)].[" + prop + "]" + (propType === 5 ? ".set" : "") +
                                     ".call(me,val,[(accessors)].[" + prop + "])" : "") +
                                     "\nEnd Property", "Public Property Set [" + nm + "](val)", propType
@@ -192,9 +196,6 @@
                     if (staticClass) {
 
                         accessorsActive = {};
-                        ownEach(accessors, function(prop, val) {
-                            accessorsActive[prop] = copy[prop];
-                        });
 
                         owner.obj = window[staticClass + "Factory"]();
 
@@ -206,6 +207,13 @@
                                     }
                                 } else {
                                     owner.obj[prop] = val;
+                                }
+                            } else {
+                                if (accessors[prop] === 5) {
+                                    emptyFunction.prototype = copy[prop];
+                                    accessorsActive[prop] = new emptyFunction;
+                                } else {
+                                    accessorsActive[prop] = copy[prop];
                                 }
                             }
                         }, 1);
