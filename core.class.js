@@ -1,5 +1,5 @@
 /*
- * core.class.js Library for JavaScript v0.5.6
+ * core.class.js Library for JavaScript v0.5.7
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 03-02-2013
+ * Update: 13-02-2013
  */
 (function(window, True, False, Null, undefined) {
 
@@ -91,7 +91,7 @@
                 args = arguments,
                 oParent = Null,
                 obj = new _struct(),
-                proto = args[2] || Null,
+                proto = oParent && args[2] || Null,
                 copy = proto || obj,
                 owner = isParent ? args[0] : {obj: obj},
                 disableStatement = !isParent || args[1] === undefined || _compact !== undefined ? _compact : args[1];
