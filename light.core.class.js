@@ -166,7 +166,7 @@
                             propType = !first ? val : prop.indexOf("$") === 0 ? 1 :
                                 prop.indexOf("get ") === 0 ? 2 :
                                 prop.indexOf("set ") === 0 ? 3 :
-                                val && typeof val === "object" && (val.set || val.get) ? 5 : 0;
+                                val && typeof val === "object" && prop !== "parent" && (val.set || val.get) ? 5 : 0;
 
                         if (propType) {
 
@@ -253,7 +253,7 @@
                                     prop.indexOf("get ") === 0 ? 2 :
                                     prop.indexOf("set ") === 0 ? 3 :
                                     prop === "toString" ? 4 :
-                                    val && typeof val === "object" && (val.set || val.get) ? 5 : 0;
+                                    val && typeof val === "object" && prop !== "parent" && (val.set || val.get) ? 5 : 0;
 
                             if (propType) {
 
