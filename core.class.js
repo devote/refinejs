@@ -91,7 +91,7 @@
                 args = arguments,
                 oParent = Null,
                 obj = new _struct(),
-                proto = oParent && args[2] || Null,
+                proto = isParent && args[2] || Null,
                 copy = proto || obj,
                 owner = isParent ? args[0] : {obj: obj},
                 disableStatement = !isParent || args[1] === undefined || _compact !== undefined ? _compact : args[1];
