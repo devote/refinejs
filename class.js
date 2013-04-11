@@ -1,5 +1,5 @@
 /*
- * Class definition for JavaScript v1.0.0
+ * Class definition for JavaScript v1.0.1
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 21-03-2013
+ * Update: 11-04-2013
  */
 (function(window, True, False, Null, undefined) {
 
@@ -59,6 +59,7 @@
     function Class(context, className, extend, options, structure) {
         var
             p1, p2, p3,
+            VB = VBInc,
             firstPass = 1,
             argv = arguments,
             argn = argv.length - 1,
@@ -68,22 +69,34 @@
             staticClassNames = [],
             accessorsActive = 0,
             accessors = VBInc === Null ? 0 : {},
-            parts, statics, compact, extendCount,
+            element, parts, statics, compact, extendCount,
             returnInstance = this instanceof Class;
 
         // get a reference to the class structure
         structure = argv[argn--] || {};
 
+        if (argv[argn] && typeof argv[argn] === 'object' && !(argv[argn] instanceof Array) &&
+            argv[argn].constructor && argv[argn].constructor !== Object.prototype.constructor) {
+            if (VBInc && defineProperty) {
+                try {
+                    defineProperty(argv[argn], 't' + libID, {configurable: 1, set: function(a){VB = a}});
+                    argv[argn]['t' + libID] = 0;
+                    delete argv[argn]['t' + libID];
+                } catch (_e_) {}
+            }
+            element = VB ? Null : (compact = True, argv[argn--]);
+        }
+
         // option can only be stored in the object
         options = !argv[argn] || argv[argn] instanceof Array || typeof argv[argn] !== 'object' ? {} : argv[argn--];
+
+        // inclusion of compact mode
+        compact = compact || options['compact'];
 
         // Save references on the properties
         p1 = options['context'];
         p2 = options['extend'];
         p3 = options['mixins'];
-
-        // inclusion of compact mode
-        compact = options['compact'];
 
         // static properties
         statics = options['statics'] || (p1 || p2 || p3 || compact !== undefined ? {} : options);
@@ -136,7 +149,7 @@
                 oParent = Null,
                 obj = new structure,
                 proto = isParent && args[2] || Null,
-                copy = proto || obj,
+                copy = element || proto || obj,
                 owner = isParent ? args[0] : {o: obj},
                 compactMode = !isParent || args[1] === undefined || compact !== undefined ? compact : args[1];
 
@@ -153,16 +166,16 @@
                 copy = proto = new emptyFunction;
             }
 
-            if (extendCount || isParent) {
+            if (extendCount || isParent || element) {
                 // proxy method to wrap functions
                 var bindMethod = function(value) {
                     return typeof value === 'function' ? function() {
                         var object = owner.o, _parent = object['parent'], _class = object['__class__'];
-                        object['parent'] = oParent;
-                        object['__class__'] = classConstructor;
+                        !compactMode && (object['parent'] = oParent);
+                        !compactMode && (object['__class__'] = classConstructor);
                         var result = value.apply(this === copy || this == window ? object : this, arguments);
-                        object['parent'] = _parent;
-                        object['__class__'] = _class;
+                        !compactMode && (object['parent'] = _parent);
+                        !compactMode && (object['__class__'] = _class);
                         return result;
                     } : value;
                 };
@@ -192,7 +205,7 @@
             // if supported accessors
             if (!isParent && accessors !== 0) {
                 // first initialization of the class or if the browser supports accessors in ordinary objects
-                if (!VBInc || firstPass) {
+                if (!VB || firstPass) {
                     each(firstPass ? copy : accessors, function(prop) {
                         // search accessors
                         var value = copy[prop],
@@ -201,7 +214,7 @@
                                 : value && typeof value === 'object' && prop !== 'parent' && (value.set || value.get) ? 1
                                 : prop.indexOf('get ') === 0 ? 2
                                 : prop.indexOf('set ') === 0 ? 3
-                                : VBInc && prop === 'toString' ? 4 : 0;
+                                : VB && prop === 'toString' ? 4 : 0;
 
                         if (type) {
                             // if has found an accessors and not toString property
@@ -217,7 +230,7 @@
                                 subName = prop.split(' ').pop();
                             }
 
-                            if (!VBInc) {
+                            if (!VB) {
                                 // for browsers supported accessors to ordinary objects
                                 var descriptorSet = function(val) {
                                     // proxy for setter
@@ -238,7 +251,7 @@
                                     // w3c standard
                                     var descr = Object.getOwnPropertyDescriptor(copy, subName);
                                     defineProperty(copy, subName, {
-                                        enumerable: 1,
+                                        enumerable: VBInc ? 0 : 1,
                                         configurable: 1,
                                         set: type === 2 && descr && descr.set || descriptorSet,
                                         get: type === 3 && descr && descr.get || descriptorGet
@@ -272,7 +285,7 @@
                                     );
                                 }
                             }
-                        } else if (VBInc) {
+                        } else if (VB) {
                             // VBScript up to 60 multiple dimensions may be declared.
                             if (staticClassNames.length === 50) { // flush 50 items
                                 staticClassParts.push('Public [' + staticClassNames.join('],[') + ']');
@@ -285,7 +298,7 @@
 
                 if (firstPass && !(firstPass = 0) && accessorsActive === 0) {
                     staticClassNames = staticClassParts = accessors = 0;
-                } else if (VBInc) {
+                } else if (VB) {
                     if (accessorsActive) {
                         // once initialize VB Class for later use
                         staticClass = 'StaticClass' + libID + VBInc++;
@@ -414,31 +427,22 @@
      * @param {Boolean|Number} [all] If true/1 will list all the properties of an object, including parent
      */
     function each(object, callback, all) {
-        var index = 0, length = dontEnums.length, value;
-        if (toString.call(object) === '[object Array]') {
-            for(length = object.length; index < length; index++) {
-                value = object[index];
-                if (callback.call(value, all ? value : index, all ? index : value) === False) {
-                    break;
-                }
+        var index, length = dontEnums.length, value;
+        for(index in object) {
+            value = object[index];
+            if (((all && value !== Object.prototype[index]) || hasOwnProperty.call(object, index)) &&
+                callback.call(value, index, value) === False) {
+                length = False;
+                break;
             }
-        } else {
-            for(index in object) {
-                value = object[index];
-                if (((all && value !== Object.prototype[index]) || hasOwnProperty.call(object, index)) &&
-                    callback.call(value, index, value) === False) {
-                    length = False;
+        }
+        if (length && hasDontEnumBug) {
+            for(index = 0; index < length; index++) {
+                value = object[dontEnums[index]];
+                if ((hasOwnProperty.call(object, dontEnums[index]) ||
+                    (all && dontEnums[index] in object && value !== Object.prototype[dontEnums[index]])) &&
+                    callback.call(value, dontEnums[index], value) === False) {
                     break;
-                }
-            }
-            if (length && hasDontEnumBug) {
-                for(index = 0; index < length; index++) {
-                    value = object[dontEnums[index]];
-                    if ((hasOwnProperty.call(object, dontEnums[index]) ||
-                        (all && dontEnums[index] in object && value !== Object.prototype[dontEnums[index]])) &&
-                        callback.call(value, dontEnums[index], value) === False) {
-                        break;
-                    }
                 }
             }
         }
