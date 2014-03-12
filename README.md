@@ -13,9 +13,9 @@
 Пример создания пустого класса:
 
 ```javascript
-Class( "Empty", {} ); // создали пустой класс Empty
+jClass("Empty", {}); // создали пустой класс Empty
 
-alert( Empty ); // увидим [class Empty]
+alert(Empty); // увидим [class Empty]
 ```
 
 Как вы уже поняли создание класса не требует огромных затрат на написание кода.
@@ -25,7 +25,7 @@ alert( Empty ); // увидим [class Empty]
 Пример класса с приватными свойствами:
 
 ```javascript
-Class( "PrivateProperty", function(){
+jClass("PrivateProperty", function() {
 	// наши приватные переменные/свойства
 	var privateProp = "tratata",
 		twoPrivateProp = "lalala";
@@ -39,7 +39,7 @@ Class( "PrivateProperty", function(){
 var privateTest = new PrivateProperty();
 
 // пробуем получить приватные свойства
-alert( privateTest.privateProp ); // увидим undefined
+alert(privateTest.privateProp); // увидим undefined
 ```
 
 Создавать классы можно не только в глобальном контексте но и в любом другом.
@@ -50,12 +50,12 @@ alert( privateTest.privateProp ); // увидим undefined
 
 ```javascript
 // создание класса например в контексте window
-Class( window, "Global", {} );
+jClass(window, "Global", {});
 // создание класса в текущем контексте
-var CurrentContext = Class( {} );
+var CurrentContext = jClass({});
 // создать класс в текущем контексте но при этом он будет
 // доступен и в глобальном контексте c именем ClassesContext
-var CurrentContext = Class( "ClassesContext", {} );
+var CurrentContext = jClass("ClassesContext", {});
 ```
 
 На этом с созданием классов собственно и закончим, других способов думаю и не надо.
@@ -68,7 +68,7 @@ var CurrentContext = Class( "ClassesContext", {} );
 Для начала давайте мы создадим простой класс, который будет выводит информацию в окно браузера
 
 ```javascript
-Class( "Debug", function() {
+jClass("Debug", function() {
 
 	// приватные переменные
 	var
@@ -81,15 +81,15 @@ Class( "Debug", function() {
 
 		// конструктор класса, будет вызван во время создания экземпляра класса
 		// параметр callback нам понадобится позже, об этом читайте далее
-		constructor: function( callback ) {
+		constructor: function(callback) {
 
 			// определим какой метод нам использовать что бы повесить событие
-			var listener = window.addEventListener ? [ "addEventListener", "" ] : 
-									[ "attachEvent", "on" ];
+			var listener = window.addEventListener ? ["addEventListener", ""] : 
+									["attachEvent", "on"];
 
 			// перед тем как вешать событие мы проверим,
 			// возможно наш документ давно загружен
-			if ( document.readyState === "complete" ) {
+			if (document.readyState === "complete") {
 
 				// если документ и правда был загружен, в этом случаем назначим
 				// нашей приватной переменной ссылку на объект BODY
@@ -97,8 +97,8 @@ Class( "Debug", function() {
 
 				// выполним функцию переданную первым параметром в конструкторе
 				// если она была передана
-				if ( callback && typeof callback === "function" ) {
-					callback.call( this );
+				if (callback && typeof callback === "function") {
+					callback.call(this);
 				}
 
 				// затем просто выйдем из конструктора
@@ -109,16 +109,16 @@ Class( "Debug", function() {
 			var self = this;
 
 			// при создании класса, повесим обработчик на событие загрузки документа
-			window[ listener[ 0 ] ]( listener[ 1 ] + "load", function() {
+			window[listener[0]](listener[1] + "load", function() {
 
 				// после того как документ загрузился, можно смело назначить нашей
 				// приватной переменной ссылку на объект BODY
 				body = document.body;
 
 				// отобразим все что накопилось у нас в кеше, и сбросим его.
-				for( var i = 0; i < cache.length; i++ ) {
-					body.appendChild( cache[ i ] );
-					cache[ i ] = null;
+				for(var i = 0; i < cache.length; i++) {
+					body.appendChild(cache[i]);
+					cache[i] = null;
 				}
 
 				// очистим кеш
@@ -126,48 +126,48 @@ Class( "Debug", function() {
 
 				// выполним функцию переданную первым параметром в конструкторе
 				// если она была передана
-				if ( callback && typeof callback === "function" ) {
-					callback.call( self );
+				if (callback && typeof callback === "function") {
+					callback.call(self);
 				}
 
-			}, false );
+			}, false);
 		},
 
 		// наш метод с помощью которого мы будем выводить сообщения на нашу страницу
 		write: function() {
 
 				// создадим DIV в который положим наш текст
-			var div = document.createElement( "DIV" ),
+			var div = document.createElement("DIV"),
 
 				// проверим что хотят вставить в окно вывода, если последний
 				// параметр нашей функции имеет болевое значение TRUE значит
 				// мы хотим просто распечатать текст не конвертируя теги в DOM
 				// элементы.
 				isPlainText = arguments.length ? 
-						arguments[ arguments.length - 1 ] === true : false,
+						arguments[arguments.length - 1] === true : false,
 
 				// переведем наши аргументы в массив
-				dataArray = Array.prototype.slice.call( arguments );
+				dataArray = Array.prototype.slice.call(arguments);
 
 			// если хотим распечатать текст не переводя HTML в структуру DOM объектов
-			if ( isPlainText && dataArray.pop() ) {
+			if (isPlainText && dataArray.pop()) {
 				// последний аргумент как вы видите мы удалили, который информирует 
 				// нас о том что мы не желаем переводить текст в структуру DOM
 				div.appendChild(
-					document.createTextNode( dataArray.join( ", " ) )
+					document.createTextNode(dataArray.join(", "))
 				);
 			} else {
 				// здесь теги в тексте будут обработаны в DOM элементы.
-				div.innerHTML = dataArray.join( ", " );
+				div.innerHTML = dataArray.join(", ");
 			}
 
 			// здесь мы выводим или отложим данные до возможности их вывести
-			if ( body ) {
+			if (body) {
 				// выводим в браузер сразу так как элемент BODY определен
-				body.appendChild( div );
+				body.appendChild(div);
 			} else {
 				// положим пока что в наш кеш до определения элемента BODY
-				cache[ cache.length ] = div;
+				cache[cache.length] = div;
 			}
 		}
 	}
@@ -181,7 +181,7 @@ Class( "Debug", function() {
 ```javascript
 var debug = new Debug();
 
-debug.write( "Наш класс <var>Debug</var> отлично работает!" );
+debug.write("Наш класс <var>Debug</var> отлично работает!");
 ```
 
 "Ничего особенного!" Скажете вы, обычное ненужное создание классов иным способом. Да, отвечу я вам, особо ничего заумного тут нет, но самые вкусности еще не были рассказаны.
@@ -193,7 +193,7 @@ debug.write( "Наш класс <var>Debug</var> отлично работает
 
 ```javascript
 // Создадим класс Button и расширим его от класса Debug
-Class( "Button extends Debug", function() {
+jClass("Button extends Debug", function() {
 
 		// статус мыши
 	var mouseState = 0,
@@ -201,10 +201,10 @@ Class( "Button extends Debug", function() {
 		button = null;
 
 	// приватная функция
-	function switchState( type ) {
+	function switchState(type) {
 
 		// тип изменения статуса мыши
-		if ( type === 1 ) {
+		if (type === 1) {
 
 			mouseState++;
 
@@ -213,7 +213,7 @@ Class( "Button extends Debug", function() {
 
 			return;
 
-		} else if ( type === 2 ) {
+		} else if (type === 2) {
 
 			mouseState--;
 
@@ -232,7 +232,7 @@ Class( "Button extends Debug", function() {
 		Button: function() {
 
 			// создадим элемент для кнопки
-			button = document.createElement( "SPAN" );
+			button = document.createElement("SPAN");
 
 			// зададим свойства кнопки по умолчанию
 			button.style.border = "1px solid blue";
@@ -249,13 +249,13 @@ Class( "Button extends Debug", function() {
 			// вызываем родительский конструктор то-есть конструктор класса Debug
 			// обратите внимание на то что здесь я передаю первым параметром родителю
 			// нашу функцию, которую класс Debug вызовет когда документ будет загружен
-			this.parent.constructor( function() {
+			this.parent.constructor(function() {
 
 				// сохраним ссылку на текущий контекст
 				var self = this;
 
 				// добавим нашу кнопку в структуру DOM
-				document.body.appendChild( button );
+				document.body.appendChild(button);
 
 				// запретим выделение текста в IE при двойном клике на кнопку
 				button.onselectstart = function() {
@@ -263,17 +263,17 @@ Class( "Button extends Debug", function() {
 				}
 
 				// обработаем событие нажатия мыши
-				button.onmousedown = function( e ) {
+				button.onmousedown = function(e) {
 
 					// получаем объект события мыши
 					var e = e || window.event;
 
 					// меняем статус кнопки, тоесть ее стиль
-					switchState( 1 );
+					switchState(1);
 
 					// отменяем действие по умолчанию что бы текст
 					// не выделялся в других браузерах.
-					if ( e.preventDefault ) {
+					if (e.preventDefault) {
 						e.preventDefault();
 					} else {
 						e.returnValue = false;
@@ -284,10 +284,10 @@ Class( "Button extends Debug", function() {
 				button.onmouseup = function() {
 
 					// меняем статус кнопки, то-есть стиль
-					switchState( 2 );
+					switchState(2);
 
 					// если мышь нажали и отпустили на нашей кнопке
-					if ( mouseState === 0 ) {
+					if (mouseState === 0) {
 
 						// запускаем обработчик действия после успешного
 						// нажатия на нашу кнопку
@@ -299,10 +299,10 @@ Class( "Button extends Debug", function() {
 				button.onmouseout = function() {
 
 					// если статус мыши не нулевой, то прибавим статус
-					if ( mouseState && mouseState++ ) {
+					if (mouseState && mouseState++) {
 
 						// и восстановим стиль кнопки по умолчанию
-						switchState( 2 );
+						switchState(2);
 
 					}
 				}
@@ -311,24 +311,24 @@ Class( "Button extends Debug", function() {
 				button.onmouseover = function() {
 
 					// если статус мыши не нулевой, убавляем его
-					if ( mouseState && mouseState-- ) {
+					if (mouseState && mouseState--) {
 
 						// и ставим стиль нажатой кнопки
-						switchState( 1 );
+						switchState(1);
 
 					}
 				}
 
 				// перегрузим событие документа на поднятие клавиши мыши вне кнопки
 				var handler = window.document.onmouseup;
-				window.document.onmouseup = function( e ) {
+				window.document.onmouseup = function(e) {
 
 					// сбрасываем статус и ставим стиль по умолчанию
 					switchState();
 
 					// запустим старый обработчик если таков был
-					if ( handler ) {
-						handler.call( window, e );
+					if (handler) {
+						handler.call(window, e);
 					}
 				}
 			});
@@ -352,7 +352,7 @@ Class( "Button extends Debug", function() {
 Это не единственный способ наследования, это можно делать и другим способом, например:
 
 ```javascript
-var Child = Class( Debug, {} );
+var Child = jClass(Debug, {});
 ```
 
 Как мы видем класс Child стал наследником класса Debug
@@ -367,7 +367,7 @@ var Child = Class( Debug, {} );
 	// повесим событие на успешное нажатие по кнопке
 	button.click = function() {
 		// метод write мы унаследовали от класса Debug
-		this.write( "Вы нажали и отпустили кнопку мыши на нашей первой кнопке" );
+		this.write("Вы нажали и отпустили кнопку мыши на нашей первой кнопке");
 	}
 ```
 
@@ -381,13 +381,13 @@ Setter'ы/Getter'ы
 Давайте мы с вами расширим наш класс кнопки и создадим некий супер класс который даст возможность менять текст кнопки посредством геттеров/сеттеров. В этом классе мы не будем использовать ни конструкторы ни приватных методов, а лишь создадим свойство которое будет перехватываться магическим геттером/сеттером
 
 ```javascript
-Class( "SuperButton extends Button", {
+jClass("SuperButton extends Button", {
 
 	text: {
-		set: function( value ) {
+		set: function(value) {
 
 			// пишем сообщение в браузер о том что был вызван сеттер для свойства
-			this.write( "Вызван SETTER для свойства <var>text</var> со значением <var>" + value + "</var>" );
+			this.write("Вызван SETTER для свойства <var>text</var> со значением <var>" + value + "</var>");
 
 			// меняем текст кнопки на новое значение
 			this.node().innerHTML = value;
@@ -396,7 +396,7 @@ Class( "SuperButton extends Button", {
 		get: function() {
 
 			// пишем сообщение в браузер о том что был вызван геттер для свойства
-			this.write( "Вызван GETTER для свойства <var>text</var>" );
+			this.write("Вызван GETTER для свойства <var>text</var>");
 
 			// возвращаем текущее значение нашего свойства
 			return this.node().innerHTML;
@@ -406,7 +406,7 @@ Class( "SuperButton extends Button", {
 	// другой способ работать с сеттерами/геттерами
 
 	// сеттер для свойства name
-	"set name": function( value ) {
+	"set name": function(value) {
 	},
 
 	// геттер для свойства name
@@ -425,7 +425,7 @@ var superButton = new SuperButton();
 
 // испробуем геттер, просто получим текущее значение имени кнопки
 // обратите внимание на сообщение в окне браузера
-superButton.write( "Текущее имя нашей супер кнопки: <var>" + superButton.text + "</var>" );
+superButton.write("Текущее имя нашей супер кнопки: <var>" + superButton.text + "</var>");
 
 // а теперь заменим текст кнопки и мы снова увидим сообщение в окне браузера
 // информирующее нас о том что был вызван сеттер
@@ -441,28 +441,28 @@ superButton.text = "Наша вторая супер кнопка";
 
 ```javascript
 // создание класса например в контексте window
-Class( window, "Global", {
+jClass(window, "Global", {
 	staticProperty: 1
 }, {
 	dinamicProperty: function() {
-		alert( Global.staticProperty );
+		alert(Global.staticProperty);
 	}
 });
 // создание класса в текущем контексте
-var CurrentContext = Class({
+var CurrentContext = jClass({
 	staticProperty: 1
 }, {
 	dinamicProperty: function() {
-		alert( CurrentContext.staticProperty );
+		alert(CurrentContext.staticProperty);
 	}
 });
 // создать класс в текущем контексте но при этом он будет
 // доступен и в глобальном контексте c именем ClassesContext
-var CurrentContext = Class( "ClassesContext", {
+var CurrentContext = jClass("ClassesContext", {
 	staticProperty: 1
 }, {
 	dinamicProperty: function() {
-		alert( ClassesContext.staticProperty );
+		alert(ClassesContext.staticProperty);
 	}
 });
 ```
@@ -476,8 +476,8 @@ var CurrentContext = Class( "ClassesContext", {
 Но у экземпляра класса Button мы спокойно можем создать дополнительные свойства, так как у нас не используются сеттеры/геттеры у этого класса и его потомков.
 
 
-Так же хочу добавить что нативный instanceof не будет реагировать корректно на эти классы поэтому для этих случаев я добавил метод Class.instanceOf для проверки принадлежности экземпляра к нужному нам классу в нашем случаем вызов:
+Так же хочу добавить что нативный instanceof не будет реагировать корректно на эти классы поэтому для этих случаев я добавил метод jClass.instanceOf для проверки принадлежности экземпляра к нужному нам классу в нашем случаем вызов:
 
 ```javascript
-alert( Class.instanceOf( superButton, Debug ) ); // отобразит TRUE
+alert(jClass.instanceOf(superButton, Debug)); // отобразит TRUE
 ```
