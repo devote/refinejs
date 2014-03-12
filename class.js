@@ -1,5 +1,5 @@
 /*
- * Class definition for JavaScript v1.0.1
+ * jClass - class definition for JavaScript v1.1.0
  *
  * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -53,10 +53,8 @@
      * @param {*} [options] Object contains static properties and other options
      * @param {*} [structure] The structure of the class
      * @return {Function|Object} Returns constructor or an instance
-     *
-     * @constructor
      */
-    function Class(context, className, extend, options, structure) {
+    window['jClass'] = function jClass(context, className, extend, options, structure) {
         var
             p1, p2, p3,
             VB = VBInc,
@@ -70,7 +68,7 @@
             accessorsActive = 0,
             accessors = VBInc === Null ? 0 : {},
             element, parts, statics, compact, extendCount,
-            returnInstance = this instanceof Class;
+            returnInstance = this instanceof jClass;
 
         // get a reference to the class structure
         structure = argv[argn--] || {};
@@ -110,7 +108,7 @@
         parts = typeof argv[argn] === 'string' && argv[argn--].split(/extends|implements|,/g) || [];
 
         // get the context in which to add the class constructor
-        context = argv[argn--] || p1 || Class['defaultContext'] || window;
+        context = argv[argn--] || p1 || jClass['NS'] || (jClass['NS'] = window);
 
         // name of the new class
         className = (parts.shift() || '').replace(/^\s+|\s+$/g, '');
@@ -152,6 +150,11 @@
                 copy = element || proto || obj,
                 owner = isParent ? args[0] : {o: obj},
                 compactMode = !isParent || args[1] === undefined || compact !== undefined ? compact : args[1];
+
+            // copy the static properties
+            each(statics, function(prop, val) {
+                obj[prop] = val;
+            });
 
             for(; index--;) {
                 if (typeof extend[index] === 'string') {
@@ -395,7 +398,7 @@
 
         // return an instance of Class if summoned by the operator new, otherwise return the constructor
         return returnInstance ? new classConstructor : classConstructor;
-    }
+    };
 
     /**
      * Returns the class constructor by name
@@ -455,7 +458,7 @@
      * @param {Function} constructor
      * @return {Boolean}
      */
-    Class['instanceOf'] = function(object, constructor) {
+    jClass['instanceOf'] = function(object, constructor) {
 
         while(object && object['__class__'] != Null) {
 
@@ -518,6 +521,7 @@
         return object;
     })({});
 
-    window['Class'] = Class;
+    // default namespace for the Classes
+    jClass['NS'] = jClass['NS'] || window;
 
 })(window, true, false, null);
