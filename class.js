@@ -1,7 +1,7 @@
 /*
- * jClass - class definition for JavaScript v1.1.0
+ * jClass - class definition for JavaScript v1.2.0
  *
- * Copyright 2012-2013, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
+ * Copyright 2012-2014, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
  * http://spb-piksel.ru/ - https://github.com/devote
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 11-04-2013
+ * Update: 03/12/2014
  */
 (function(window, True, False, Null, undefined) {
 
@@ -173,12 +173,10 @@
                 // proxy method to wrap functions
                 var bindMethod = function(value) {
                     return typeof value === 'function' ? function() {
-                        var object = owner.o, _parent = object['parent'], _class = object['__class__'];
+                        var object = owner.o, _parent = object['parent'];
                         !compactMode && (object['parent'] = oParent);
-                        !compactMode && (object['__class__'] = classConstructor);
                         var result = value.apply(this === copy || this == window ? object : this, arguments);
                         !compactMode && (object['parent'] = _parent);
-                        !compactMode && (object['__class__'] = _class);
                         return result;
                     } : value;
                 };
