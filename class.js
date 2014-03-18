@@ -1,5 +1,5 @@
 /*
- * jClass - class definition for JavaScript v1.2.0
+ * jClass - class definition for JavaScript v1.3.0
  *
  * Copyright 2012-2014, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 03/12/2014
+ * Update: 03/18/2014
  */
 (function(window, True, False, Null, undefined) {
 
@@ -167,6 +167,9 @@
                     owner['i'] = Null;
                 }
                 copy = proto = new emptyFunction;
+                if (!compactMode) {
+                    copy['parent'] = oParent;
+                }
             }
 
             if (extendCount || isParent || element) {
@@ -200,7 +203,6 @@
             if (!compactMode) {
                 // adds special statements
                 copy['__class__'] = classConstructor;
-                copy['parent'] = oParent;
             }
 
             // if supported accessors
@@ -369,6 +371,8 @@
             return "[class " + (className || "Object") + "]";
         };
 
+        classConstructor['getInstanceOf'] = getInstanceOf;
+
         // copy the static properties
         each(statics, function(prop, val) {
             classConstructor[prop] = val;
@@ -413,6 +417,9 @@
             }
             construct = context;
         }
+        if (typeof jClass['autoload'] === 'function') {
+            construct = jClass['autoload'](name, context);
+        }
         if (typeof construct !== 'function') {
             throw new Error("Parent class '" + name + "' not Initialized or Undefined");
         }
@@ -450,6 +457,22 @@
     }
 
     /**
+     * Finds and returns an instance of the class
+     *
+     * @param {Object} object
+     * @return {Object}
+     */
+    function getInstanceOf(object) {
+        while(object && object['__class__'] != Null) {
+            if (object['__class__'] === this) {
+                return object;
+            }
+            object = object['parent'];
+        }
+        return Null;
+    }
+
+    /**
      * Whether an object is an instance of class
      *
      * @param {Object} object
@@ -457,15 +480,7 @@
      * @return {Boolean}
      */
     jClass['instanceOf'] = function(object, constructor) {
-
-        while(object && object['__class__'] != Null) {
-
-            if (object['__class__'] === constructor) {
-                return True;
-            }
-            object = object['parent'];
-        }
-        return False;
+        return !!getInstanceOf.call(constructor, object);
     };
 
     /**
