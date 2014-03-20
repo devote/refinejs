@@ -1,5 +1,5 @@
 /*
- * jClass - class definition for JavaScript v1.3.0
+ * jClass - class definition for JavaScript v1.4.0
  *
  * Copyright 2012-2014, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 03/18/2014
+ * Update: 03/20/2014
  */
 (function(window, True, False, Null, undefined) {
 
@@ -108,7 +108,7 @@
         parts = typeof argv[argn] === 'string' && argv[argn--].split(/extends|implements|,/g) || [];
 
         // get the context in which to add the class constructor
-        context = argv[argn--] || p1 || jClass['NS'] || (jClass['NS'] = window);
+        context = argv[argn--] || p1 || jClass['classScope'] || (jClass['classScope'] = window);
 
         // name of the new class
         className = (parts.shift() || '').replace(/^\s+|\s+$/g, '');
@@ -372,6 +372,7 @@
         };
 
         classConstructor['getInstanceOf'] = getInstanceOf;
+        classConstructor['baseContext'] = context;
 
         // copy the static properties
         each(statics, function(prop, val) {
@@ -403,6 +404,26 @@
     };
 
     /**
+     * Returns the function by name
+     *
+     * @param {String} name Name of the class that will search
+     * @param {Object} context Context where it is necessary to find a constructor
+     * @return {Function|null} Returns constructor
+     */
+    function findFunctionByName(name, context) {
+        var result = Null, baseContext = context, subName, parts;
+        if (typeof name === 'string') {
+            parts = name.split('.');
+            while((subName = parts.shift()) && (context = context[subName])) {
+            }
+            if (typeof context === 'function' && baseContext === context.baseContext) {
+                result = context;
+            }
+        }
+        return result;
+    };
+
+    /**
      * Returns the class constructor by name
      *
      * @param {String} name Name of the class that will search
@@ -410,21 +431,13 @@
      * @return {Function} Returns constructor
      */
     function getClassByName(name, context) {
-        var subName, construct = name;
-        if (typeof name === 'string') {
-            construct = name.split('.');
-            while((subName = construct.shift()) && (context = context[subName])) {
-            }
-            construct = context;
-        }
-        if (typeof jClass['autoload'] === 'function') {
-            construct = jClass['autoload'](name, context);
-        }
-        if (typeof construct !== 'function') {
+        var construct = findFunctionByName(name, context) || findFunctionByName(name, window) ||
+            (typeof jClass['autoload'] === 'function' && jClass['autoload'](name, context)) || Null;
+        if (!construct) {
             throw new Error("Parent class '" + name + "' not Initialized or Undefined");
         }
         return construct;
-    }
+    };
 
     /**
      * Iterates through each property of the object by calling the callback
@@ -454,7 +467,7 @@
                 }
             }
         }
-    }
+    };
 
     /**
      * Finds and returns an instance of the class
@@ -470,7 +483,7 @@
             object = object['parent'];
         }
         return Null;
-    }
+    };
 
     /**
      * Whether an object is an instance of class
@@ -535,6 +548,6 @@
     })({});
 
     // default namespace for the Classes
-    jClass['NS'] = jClass['NS'] || window;
+    jClass['classScope'] = jClass['classScope'] || window;
 
 })(window, true, false, null);
