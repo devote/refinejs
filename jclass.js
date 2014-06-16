@@ -1,5 +1,5 @@
 /*
- * jClass - class definition for JavaScript v1.4.0
+ * jClass - class definition for JavaScript v1.4.1
  *
  * Copyright 2012-2014, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 03/20/2014
+ * Update: 06/16/2014
  */
 (function(window, True, False, Null, undefined) {
 
@@ -22,6 +22,7 @@
         toString = Object.prototype.toString,
         defineProperty = Object.defineProperty,
         hasOwnProperty = Object.prototype.hasOwnProperty,
+        isNeedProto = !(Object.getPrototypeOf || Object.prototype.__proto__),
         emptyFunction = function() {
         },
         errorFunction = function(prop, type) {
@@ -54,7 +55,7 @@
      * @param {*} [structure] The structure of the class
      * @return {Function|Object} Returns constructor or an instance
      */
-    window['jClass'] = function jClass(context, className, extend, options, structure) {
+    function jClass(context, className, extend, options, structure) {
         var
             p1, p2, p3,
             VB = VBInc,
@@ -97,7 +98,7 @@
         p3 = options['mixins'];
 
         // static properties
-        statics = options['statics'] || (p1 || p2 || p3 || compact !== undefined ? {} : options);
+        statics = options['statics'] || (p1 || p2 || p3 || "compact" in options ? {} : options);
 
         // construct an array of inherited classes
         extend = argv[argn] instanceof Array ? argv[argn--] : typeof argv[argn] === 'function' ? [argv[argn--]] :
@@ -145,15 +146,17 @@
                 isParent = this instanceof Boolean,
                 args = arguments,
                 oParent = Null,
-                obj = new structure,
-                proto = isParent && args[2] || Null,
+                obj = structure.apply(options, isParent ? args[0] : args),
+                proto = isParent && args[3] || Null,
                 copy = element || proto || obj,
-                owner = isParent ? args[0] : {o: obj},
-                compactMode = !isParent || args[1] === undefined || compact !== undefined ? compact : args[1];
+                owner = isParent ? args[1] : {o: obj},
+                compactMode = !isParent || args[2] === undefined || compact !== undefined ? compact : args[2];
 
             // copy the static properties
             each(statics, function(prop, val) {
-                obj[prop] = val;
+                if (!hasOwnProperty.call(obj, prop)) {
+                    obj[prop] = val;
+                }
             });
 
             for(; index--;) {
@@ -161,7 +164,7 @@
                     // get the class by its name
                     extend[index] = getClassByName(extend[index], context);
                 }
-                emptyFunction.prototype = oParent = extend[index].call(new Boolean, owner, compactMode, proto);
+                emptyFunction.prototype = oParent = extend[index].call(new Boolean, args, owner, compactMode, proto);
                 if (index > 0) {
                     // cannot auto execute constructor in implements
                     owner['i'] = Null;
@@ -169,13 +172,16 @@
                 copy = proto = new emptyFunction;
                 if (!compactMode) {
                     copy['parent'] = oParent;
+                    if (isNeedProto) {
+                        copy['__proto__'] = oParent;
+                    }
                 }
             }
 
             if (extendCount || isParent || element) {
                 // proxy method to wrap functions
                 var bindMethod = function(value) {
-                    return typeof value === 'function' ? function() {
+                    return compactMode ? value : typeof value === 'function' ? function() {
                         var object = owner.o, _parent = object['parent'];
                         !compactMode && (object['parent'] = oParent);
                         var result = value.apply(this === copy || this == window ? object : this, arguments);
@@ -214,7 +220,7 @@
                         var value = copy[prop],
                             subName = prop,
                             type = !firstPass ? accessors[prop]
-                                : value && typeof value === 'object' && prop !== 'parent' && (value.set || value.get) ? 1
+                                : value && typeof value === 'object' && prop !== 'parent' && prop !== '__proto__' && (value.set || value.get) ? 1
                                 : prop.indexOf('get ') === 0 ? 2
                                 : prop.indexOf('set ') === 0 ? 3
                                 : VB && prop === 'toString' ? 4 : 0;
@@ -480,7 +486,7 @@
             if (object['__class__'] === this) {
                 return object;
             }
-            object = object['parent'];
+            object = Object.getPrototypeOf ? Object.getPrototypeOf(object) : object.__proto__;
         }
         return Null;
     };
@@ -549,5 +555,7 @@
 
     // default namespace for the Classes
     jClass['classScope'] = jClass['classScope'] || window;
+
+    window['jClass'] = jClass;
 
 })(window, true, false, null);
