@@ -1,5 +1,5 @@
 /*
- * jClass - class definition for JavaScript v1.4.2
+ * jClass - class definition for JavaScript v1.4.3
  *
  * Copyright 2012-2014, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -238,18 +238,23 @@
                             } else {
                                 // trimmed prefix set/get
                                 subName = prop.split(' ').pop();
+                                if (type !== 3 && typeof value !== "function") {
+                                    value = (function(value) {
+                                      return function() {return value};
+                                    })(value);
+                                }
                             }
 
                             if (!VB) {
                                 // for browsers supported accessors to ordinary objects
                                 var descriptorSet = function(val) {
                                     // proxy for setter
-                                    ((type === 1 ? value.set : value) || errorFunction(subName, 1)).call(this, val, value);
+                                    ((type === 1 ? value.set : type === 3 && value) || errorFunction(subName, 1)).call(this, val, value);
                                 };
 
                                 var descriptorGet = function() {
                                     // proxy for getter
-                                    return ((type === 1 ? value.get : value) || errorFunction(subName, 0)).call(this, value);
+                                    return ((type === 1 ? value.get : type !== 3 && value) || errorFunction(subName, 0)).call(this, value);
                                 };
 
                                 if (hasOwnProperty.call(copy, prop)) {
@@ -348,6 +353,8 @@
                             if (accessors[prop] === 1) {
                                 emptyFunction.prototype = copy[prop];
                                 staticClassParts[prop] = new emptyFunction;
+                            } else if (accessors[prop] !== 3 && typeof val !== "function") {
+                                staticClassParts[prop] = function() {return val};
                             } else {
                                 staticClassParts[prop] = copy[prop];
                             }
