@@ -1,5 +1,5 @@
 /*
- * jClass - class definition for JavaScript v1.4.1
+ * jClass - class definition for JavaScript v1.4.2
  *
  * Copyright 2012-2014, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 06/16/2014
+ * Update: 06/17/2014
  */
 (function(window, True, False, Null, undefined) {
 
@@ -23,8 +23,7 @@
         defineProperty = Object.defineProperty,
         hasOwnProperty = Object.prototype.hasOwnProperty,
         isNeedProto = !(Object.getPrototypeOf || Object.prototype.__proto__),
-        emptyFunction = function() {
-        },
+        emptyFunction = (function(){return function(){}})(),
         errorFunction = function(prop, type) {
             return function() {
                 throw new Error("'" + prop + "' property is " + (type ? "read" : "write") + "-only");
@@ -123,7 +122,9 @@
         extend = p1.concat.apply(p1, extend.concat.apply(extend, p2.concat.apply(p2, p3)));
 
         // parent classes numbers
-        extendCount = extend.length;
+        if (!(extendCount = extend.length || className)) {
+          compact = True;
+        }
 
         if (typeof structure !== 'function') {
             // if the structure is not a function
@@ -422,7 +423,7 @@
             parts = name.split('.');
             while((subName = parts.shift()) && (context = context[subName])) {
             }
-            if (typeof context === 'function' && baseContext === context.baseContext) {
+            if (typeof context === 'function' && baseContext === context['baseContext']) {
                 result = context;
             }
         }
