@@ -1,5 +1,5 @@
 /*
- * jClass - class definition for JavaScript v1.4.3
+ * jClass - class definition for JavaScript v1.4.4
  *
  * Copyright 2012-2014, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -9,7 +9,7 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 06/17/2014
+ * Update: 06/19/2014
  */
 (function(window, True, False, Null, undefined) {
 
@@ -24,6 +24,7 @@
         hasOwnProperty = Object.prototype.hasOwnProperty,
         isNeedProto = !(Object.getPrototypeOf || Object.prototype.__proto__),
         emptyFunction = (function(){return function(){}})(),
+        proxyFunction = function(e){return function(){return e}},
         errorFunction = function(prop, type) {
             return function() {
                 throw new Error("'" + prop + "' property is " + (type ? "read" : "write") + "-only");
@@ -85,8 +86,10 @@
             element = VB ? Null : (compact = True, argv[argn--]);
         }
 
-        // option can only be stored in the object
-        options = !argv[argn] || argv[argn] instanceof Array || typeof argv[argn] !== 'object' ? {} : argv[argn--];
+        // option can only be stored in the object or boolean(compact mode)
+        options = !argv[argn] || argv[argn] instanceof Array || typeof argv[argn] !== 'object' ?
+            typeof argv[argn] === 'boolean' || typeof argv[argn] === 'number' ?
+                {"compact": argv[argn--]} : {} : argv[argn--];
 
         // inclusion of compact mode
         compact = compact || options['compact'];
@@ -147,7 +150,7 @@
                 isParent = this instanceof Boolean,
                 args = arguments,
                 oParent = Null,
-                obj = structure.apply(options, isParent ? args[0] : args),
+                obj = structure.apply({"isParent": isParent, "options": options}, isParent ? args[0] : args),
                 proto = isParent && args[3] || Null,
                 copy = element || proto || obj,
                 owner = isParent ? args[1] : {o: obj},
@@ -161,9 +164,13 @@
             });
 
             for(; index--;) {
-                if (typeof extend[index] === 'string') {
-                    // get the class by its name
-                    extend[index] = getClassByName(extend[index], context);
+                if (typeof extend[index] !== 'function') {
+                    if (typeof extend[index] === 'string') {
+                        // get the class by its name
+                        extend[index] = getClassByName(extend[index], context);
+                    } else {
+                        extend[index] = proxyFunction(extend[index]);
+                    }
                 }
                 emptyFunction.prototype = oParent = extend[index].call(new Boolean, args, owner, compactMode, proto);
                 if (index > 0) {
