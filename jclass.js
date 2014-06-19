@@ -1,5 +1,5 @@
 /*
- * jClass - class definition for JavaScript v1.4.4
+ * jClass - class definition for JavaScript v1.4.5
  *
  * Copyright 2012-2014, Dmitrii Pakhtinov ( spb.piksel@gmail.com )
  *
@@ -31,8 +31,7 @@
             }
         };
 
-    var
-        libID = (new Date()).getTime(), // Identifier for library, it is will be necessary for the classes in VBScript
+    var libID = (new Date()).getTime(), // Identifier for library, it is will be necessary for the classes in VBScript
         hasDontEnumBug = !({toString: 1}).propertyIsEnumerable('toString'), // is enumerable properties?
         dontEnums = [
             // not enumerated properties in IE <9
@@ -56,8 +55,7 @@
      * @return {Function|Object} Returns constructor or an instance
      */
     function jClass(context, className, extend, options, structure) {
-        var
-            p1, p2, p3,
+        var p1, p2, p3,
             VB = VBInc,
             firstPass = 1,
             argv = arguments,
@@ -125,7 +123,7 @@
         extend = p1.concat.apply(p1, extend.concat.apply(extend, p2.concat.apply(p2, p3)));
 
         // parent classes numbers
-        if (!(extendCount = extend.length || className)) {
+        if (!((extendCount = extend.length) || className || compact !== undefined)) {
           compact = True;
         }
 
@@ -145,10 +143,16 @@
 
         // this will be the constructor for the generated class
         var classConstructor = function() {
-            var
-                index = extendCount,
-                isParent = this instanceof Boolean,
-                args = arguments,
+
+            var isParent = this instanceof Boolean,
+                args = arguments;
+
+            if (!isParent && !(this instanceof classConstructor)) {
+                // if calling YourClass(instance)
+                return getInstanceOf.call(classConstructor, args[0]);
+            }
+
+            var index = extendCount,
                 oParent = Null,
                 obj = structure.apply({"isParent": isParent, "options": options}, isParent ? args[0] : args),
                 proto = isParent && args[3] || Null,
