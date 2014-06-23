@@ -1,0 +1,24 @@
+{
+  "name": "refinejs",
+  "npmName": "refinejs",
+  "npmFileMap": [{
+    "basePath": "/",
+    "files": [
+      "*.js"
+    ]
+  }],
+  "version": "1.1.0",
+  "description": "Powerful and flexible generator objects with the possibility of meta-inheritance",
+  "main": "refine.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/devote/refinejs.git"
+  },
+  "keywords": [
+    "javascript",
+    "objects",
+    "devote"
+  ],
+  "author": "Dmitrii Pakhtinov",
+  "license": "MIT"
+}

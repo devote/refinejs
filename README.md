@@ -1,1 +1,4 @@
-﻿This project is closed - see project [**RefineJS**](https://github.com/devote/refinejs)
+refinejs
+========
+
+Powerful and flexible generator objects with the possibility of meta-inheritance
