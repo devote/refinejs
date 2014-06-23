@@ -1,1 +1,1 @@
-﻿This project is closed - see project [**boon**](https://github.com/devote/boon)
+﻿This project is closed - see project [**RefineJS**](https://github.com/devote/refinejs)
