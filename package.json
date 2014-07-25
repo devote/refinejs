@@ -7,7 +7,7 @@
       "*.js"
     ]
   }],
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Powerful and flexible generator objects with the possibility of inheritance",
   "main": "refine.js",
   "repository": {

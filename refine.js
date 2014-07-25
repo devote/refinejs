@@ -1,5 +1,5 @@
 /**
- * RefineJS v1.2.0 - Powerful and flexible generator objects with the possibility of inheritance for JavaScript
+ * RefineJS v1.2.1 - Powerful and flexible generator objects with the possibility of inheritance for JavaScript
  * Copyright 2011-2014 Dmitrii Pakhtinov (spb.piksel@gmail.com)
  * Released under the MIT license
  * Update: 07/25/2014
@@ -22,6 +22,7 @@
         Null = null,
         undefined = void 0,
         globalScope = (typeof window === 'object' ? window : (typeof global !== 'undefined' ? global : this)) || {},
+        JSON = globalScope['JSON'],
         Array = globalScope['Array'],
         Object = globalScope['Object'],
         Boolean = globalScope['Boolean'],
@@ -539,7 +540,7 @@
      * The function determines the capabilities of the browser. If your browser supports
      * accessors to ordinary objects, VBInc will be zero, otherwise returns 1
      */
-    var VBInc = (function(object) {
+    var VBInc = (function(object, stringify) {
         var setter = function(value) {
             object = value;
         };
@@ -581,10 +582,24 @@
                     object = Null;
                 }
             }
+
+            // Fix for VBScript objects
+            if (object && typeof stringify === 'function') {
+                JSON.stringify = function(object) {
+                    if (object && !(object instanceof Object)) {
+                        var copy = {};
+                        each(object, function(key, value) {
+                            if (key !== '__proto__') copy[key] = value;
+                        });
+                        arguments[0] = copy;
+                    }
+                    return stringify.apply(JSON, arguments);
+                }
+            }
         }
 
         return object;
-    })({});
+    })({}, JSON && JSON.stringify);
 
     // default namespace for the Constructors
     refine['refineScope'] = refine['refineScope'] || globalScope;
