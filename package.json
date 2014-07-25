@@ -7,8 +7,8 @@
       "*.js"
     ]
   }],
-  "version": "1.1.0",
-  "description": "Powerful and flexible generator objects with the possibility of meta-inheritance",
+  "version": "1.2.0",
+  "description": "Powerful and flexible generator objects with the possibility of inheritance",
   "main": "refine.js",
   "repository": {
     "type": "git",

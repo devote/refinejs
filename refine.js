@@ -1,12 +1,14 @@
 /**
- * RefineJS v1.1.0 - Powerful and flexible generator objects with the possibility of meta-inheritance for JavaScript
+ * RefineJS v1.2.0 - Powerful and flexible generator objects with the possibility of inheritance for JavaScript
  * Copyright 2011-2014 Dmitrii Pakhtinov (spb.piksel@gmail.com)
  * Released under the MIT license
- * Update: 06/23/2014
+ * Update: 07/25/2014
  */
 (function(factory) {
     if (typeof define === 'function' && define['amd']) {
-        define(typeof document !== "object" || document.readyState !== "loading" ? [] : "refine", factory);
+        define(typeof document !== "object" || document.readyState !== "loading" ? [] : "refinejs", factory);
+    } else if (typeof exports === "object" && typeof module !== "undefined") {
+        module['exports'] = factory();
     } else {
         factory();
     }
@@ -19,10 +21,10 @@
         False = false,
         Null = null,
         undefined = void 0,
-        global = (typeof window === 'object' ? window : this) || {},
-        Array = global['Array'],
-        Object = global['Object'],
-        Boolean = global['Boolean'],
+        globalScope = (typeof window === 'object' ? window : (typeof global !== 'undefined' ? global : this)) || {},
+        Array = globalScope['Array'],
+        Object = globalScope['Object'],
+        Boolean = globalScope['Boolean'],
         toString = Object.prototype.toString,
         defineProperty = Object.defineProperty,
         hasOwnProperty = Object.prototype.hasOwnProperty,
@@ -113,7 +115,7 @@
         parts = typeof argv[argn] === 'string' && argv[argn--].split(/extends|implements|,/g) || [];
 
         // get the context in which to add the constructor
-        context = argv[argn--] || p1 || refine['refineScope'] || (refine['refineScope'] = global);
+        context = argv[argn--] || p1 || refine['refineScope'] || (refine['refineScope'] = globalScope);
 
         // name of the new constructor
         cName = (parts.shift() || '').replace(/^\s+|\s+$/g, '');
@@ -201,7 +203,7 @@
                     return compactMode ? value : typeof value === 'function' ? function() {
                         var object = owner.o, _parent = object['parent'];
                         !compactMode && (object['parent'] = oParent);
-                        var result = value.apply(this === copy || this == global ? object : this, arguments);
+                        var result = value.apply(this === copy || this == globalScope ? object : this, arguments);
                         !compactMode && (object['parent'] = _parent);
                         return result;
                     } : value;
@@ -352,22 +354,22 @@
                             'Set ' + staticClass + 'Factory=New ' + staticClass,
                             'End Function'
                         );
-                        global[staticClass + 'FactoryJS'] = function() {
+                        globalScope[staticClass + 'FactoryJS'] = function() {
                             return staticClassParts;
                         };
-                        global['execVBScript'](staticClassParts.join('\n'));
+                        globalScope['execVBScript'](staticClassParts.join('\n'));
                         accessorsActive = staticClassNames = staticClassParts = Null;
                     }
 
                     staticClassParts = {};
-                    owner.o = global[staticClass + "Factory"]();
+                    owner.o = globalScope[staticClass + "Factory"]();
 
                     // copy all values into new VB Class object
                     each(copy, function(prop, val) {
                         if (!accessors.hasOwnProperty(prop)) {
                             if ((!extendCount || compactMode) && typeof val === 'function' && prop !== '__refine__') {
                                 owner.o[prop] = function() {
-                                    return val.apply(this === copy || this == global ? owner.o : this, arguments);
+                                    return val.apply(this === copy || this == globalScope ? owner.o : this, arguments);
                                 }
                             } else {
                                 owner.o[prop] = val;
@@ -468,7 +470,7 @@
      * @return {Function} Returns constructor
      */
     function getRefineByName(name, context) {
-        var construct = findFunctionByName(name, context) || findFunctionByName(name, global) ||
+        var construct = findFunctionByName(name, context) || findFunctionByName(name, globalScope) ||
             (typeof refine['autoload'] === 'function' && refine['autoload'](name, context)) || Null;
         if (!construct) {
             throw new Error("Parent constructor '" + name + "' not Initialized or Undefined");
@@ -560,10 +562,10 @@
 
             object = 1; // Maybe VBScript classes supports???
 
-            if (!('execVBscript' in global)) {
+            if (!('execVBscript' in globalScope)) {
                 // for IE only, if VisualBasic script compiler supports
-                if ('execScript' in global) {
-                    global['execScript'](
+                if ('execScript' in globalScope) {
+                    globalScope['execScript'](
                         'Function execVBscript(code) '
                             + 'ExecuteGlobal(code) '
                             + 'End Function\n'
@@ -585,8 +587,8 @@
     })({});
 
     // default namespace for the Constructors
-    refine['refineScope'] = refine['refineScope'] || global;
+    refine['refineScope'] = refine['refineScope'] || globalScope;
 
-    return global['refine'] = global['refinejs'] = refine;
+    return globalScope['refine'] = globalScope['refinejs'] = refine;
 
 });

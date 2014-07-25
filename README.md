@@ -1,7 +1,7 @@
 RefineJS
 ========
 
-Powerful and flexible generator objects with the possibility of meta-inheritance
+Powerful and flexible generator objects with the possibility of inheritance
 
 
 ---
