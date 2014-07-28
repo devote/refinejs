@@ -1,7 +1,7 @@
 RefineJS
 ========
 
-#### Powerful and flexible generator objects with inheritable
+#### Powerful and flexible generator objects with the possibility of inheritance
 
 ---
 This mini-library adds/expands the possibilities for objects in JavaScript or to be more precise, makes all the routine work on the objects for you. Namely:
