@@ -55,8 +55,8 @@ This mini-library adds/expands the possibilities for objects in JavaScript or to
 
 #### Parameters:
   1. [object] - *context*
-    - Context where it will be built ***refine-constructor***. You must specify the name *cName*. 
-  2. [string] - *cName*
+    - Context where it will be built ***refine-constructor***. You must specify the parameter *name*.
+  2. [string] - *name*
     - A string specifying the name of ***refine-constructor***
   3. [array] - *extend*
     - An array of objects that need to expand/improve or ***refine-constructors*** from which to inherit.
@@ -189,8 +189,8 @@ console.log(rect.width); // 90 - override failed, the value remains unchanged
 
 #### Параметры конструктора объектов:
   1. [object] - *context*
-    - Контекст в котором будет создан ***refine-конструктор*** при условии если задано его имя *cName* 
-  2. [string] - *cName*
+    - Контекст в котором будет создан ***refine-конструктор*** при условии если задан параметр *name*. По умолчанию контекст является глобальной областью. 
+  2. [string] - *name*
     - Строка определяющая имя ***refine-конструктора***
   3. [array] - *extend*
     - Массив объектов которые нужно расширить/улучшить или ***refine-конструкторов*** от которых нужно наследоваться.
@@ -202,6 +202,95 @@ console.log(rect.width); // 90 - override failed, the value remains unchanged
 Примеры
 -------
 
+##### Пример использования параметра `structure`:
+```js
+var Foo = refine({
+  foo: "something"
+});
+var foo = new Foo();
+foo.foo; // something
+
+// или
+
+var Foo = refine(function() {
+  // приватные определения
+  var _foo = "something";
+  return {
+    foo: _foo
+  }
+});
+var foo = new Foo();
+foo.foo; // something
+```
+##### Пример использования параметра `name`:
+```js
+refine("Foo", {
+  foo: "something"
+});
+var foo = new Foo();
+foo.foo; // something
+```
+##### Пример использования параметра `context`:
+```js
+var context = {}; // контекст в котором будет создан refine-конструктор с именем Foo
+refine(context, "Foo", {
+  foo: "something"
+});
+
+var foo = new context.Foo(); // обращаемся к конструктору через контекст
+foo.foo; // something
+```
+##### Пример использования параметра `extend`:
+```js
+refine("Bar", [Foo], {
+  bar: "something bar"
+});
+var bar = new Bar();
+bar.foo; // something
+bar.bar; // something bar
+
+// или
+
+refine("Bar", ["Foo"], { // Foo как строка, удобно если еще не объявлен конструктор
+  bar: "something bar"
+});
+var bar = new Bar();
+bar.foo; // something
+bar.bar; // something bar
+
+// ==================================
+var baz = new refine(["Foo", "Bar"], {
+  baz: "baz something"
+});
+baz.foo; // something
+baz.bar; // something bar
+baz.baz; // baz something
+```
+
+## Создание методов доступа
+В данной реализации методы доступа являются кросс-браузерными.
+
+Для реализации методов доступа есть два варианта, это более стандартный способ создания используя имена get/set или более лаконичный с префиксом свойства "get "/"set ".
+
+Давайте попробуем написать небольшой объект имеющий свойство `text` с методами доступа:
+```js
+var demo = new refine(function() {
+  var _text;
+  return {
+    text: {
+      set: function(value) {
+        _text = value;
+      },
+      get: function() {
+        return "Ваше текущее значение: " + _text;
+      }
+    }
+  }
+});
+demo.text; // Ваше текущее значение: undefined
+demo.text = "Привет мир!";
+demo.text; // Ваше текущее значение: Привет мир!
+```
 Способ реализации объекта со свойствами, доступными только для чтения:
 ```js
 var Rect = refine(function(left, top, right, bottom) {
