@@ -1,8 +1,8 @@
 /**
- * RefineJS v1.2.2 - Powerful and flexible generator objects with the possibility of inheritance for JavaScript
+ * RefineJS v1.2.3 - Powerful and flexible generator objects with the possibility of inheritance for JavaScript
  * Copyright 2011-2014 Dmitrii Pakhtinov (spb.piksel@gmail.com)
  * Released under the MIT license
- * Update: 11/20/2014
+ * Update: 11/23/2014
  */
 (function(factory) {
   if (typeof define === 'function' && define['amd']) {
@@ -26,10 +26,10 @@
     Array = globalScope['Array'],
     Object = globalScope['Object'],
     Boolean = globalScope['Boolean'],
-    toString = Object.prototype.toString,
+    ObjectPrototype = Object.prototype,
     defineProperty = Object.defineProperty,
-    hasOwnProperty = Object.prototype.hasOwnProperty,
-    isNeedProto = !(Object.getPrototypeOf || Object.prototype.__proto__),
+    hasOwnProperty = ObjectPrototype.hasOwnProperty,
+    isNeedProto = !(Object.getPrototypeOf || "__proto__" in ObjectPrototype),
     emptyFunction = (function() {
       return function() {
       }
@@ -87,7 +87,7 @@
     structure = argv[argn--] || {};
 
     if (argv[argn] && typeof argv[argn] === 'object' && !(argv[argn] instanceof Array) &&
-      argv[argn].constructor && argv[argn].constructor !== Object.prototype.constructor) {
+      argv[argn].constructor && argv[argn].constructor !== ObjectPrototype.constructor) {
       if (VBInc && defineProperty) {
         try {
           defineProperty(argv[argn], 't' + libID, {
@@ -518,7 +518,7 @@
     var index, length = dontEnums.length, value;
     for(index in object) {
       value = object[index];
-      if (((all && value !== Object.prototype[index]) || hasOwnProperty.call(object, index)) &&
+      if (((all && value !== ObjectPrototype[index]) || hasOwnProperty.call(object, index)) &&
         callback.call(value, index, value) === False) {
         length = False;
         break;
@@ -528,7 +528,7 @@
       for(index = 0; index < length; index++) {
         value = object[dontEnums[index]];
         if ((hasOwnProperty.call(object, dontEnums[index]) ||
-          (all && dontEnums[index] in object && value !== Object.prototype[dontEnums[index]])) &&
+          (all && dontEnums[index] in object && value !== ObjectPrototype[dontEnums[index]])) &&
           callback.call(value, dontEnums[index], value) === False) {
           break;
         }
